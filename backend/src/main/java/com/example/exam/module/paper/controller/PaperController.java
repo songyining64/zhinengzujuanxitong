@@ -1,0 +1,65 @@
+package com.example.exam.module.paper.controller;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.exam.common.api.ApiResponse;
+import com.example.exam.module.paper.dto.PaperAutoGenRequest;
+import com.example.exam.module.paper.dto.PaperDetailVO;
+import com.example.exam.module.paper.dto.PaperManualRequest;
+import com.example.exam.module.paper.entity.Paper;
+import com.example.exam.module.paper.service.PaperService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/paper")
+@RequiredArgsConstructor
+@Validated
+public class PaperController {
+
+    private final PaperService paperService;
+
+    @PostMapping("/manual")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ApiResponse<Paper> manual(@RequestBody @Valid PaperManualRequest req) {
+        return ApiResponse.success(paperService.createManual(req));
+    }
+
+    @PostMapping("/auto-generate")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ApiResponse<Paper> auto(@RequestBody @Valid PaperAutoGenRequest req) {
+        return ApiResponse.success(paperService.generateAuto(req));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    public ApiResponse<Page<Paper>> page(
+            @RequestParam Long courseId,
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "10") long size
+    ) {
+        return ApiResponse.success(paperService.page(courseId, page, size));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    public ApiResponse<PaperDetailVO> detail(@PathVariable Long id) {
+        return ApiResponse.success(paperService.getDetail(id));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        paperService.delete(id);
+        return ApiResponse.success();
+    }
+}

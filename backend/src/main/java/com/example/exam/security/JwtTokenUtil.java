@@ -1,29 +1,40 @@
 package com.example.exam.security;
 
+import com.example.exam.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 @Component
+@RequiredArgsConstructor
 public class JwtTokenUtil {
 
+    private final JwtProperties jwtProperties;
     private Key key;
-    private final long expirationMillis = 7 * 24 * 60 * 60 * 1000L;
 
     @PostConstruct
     public void init() {
-        this.key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+            this.key = Keys.hmacShaKeyFor(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 
     public String generateToken(String username) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expirationMillis);
+        Date expiryDate = new Date(now.getTime() + jwtProperties.getExpirationMs());
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(now)
@@ -41,4 +52,3 @@ public class JwtTokenUtil {
         return claims.getSubject();
     }
 }
-
