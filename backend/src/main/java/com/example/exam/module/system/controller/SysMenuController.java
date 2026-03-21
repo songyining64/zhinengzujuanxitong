@@ -19,7 +19,7 @@ public class SysMenuController {
     private final SysMenuService sysMenuService;
 
     @GetMapping("/tree")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<MenuTreeVO>> tree() {
         return ApiResponse.success(sysMenuService.treeForCurrentRole());
     }

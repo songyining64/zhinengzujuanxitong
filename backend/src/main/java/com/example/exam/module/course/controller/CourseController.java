@@ -32,25 +32,25 @@ public class CourseController {
     private final CourseService courseService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:manage')")
     public ApiResponse<Course> create(@RequestBody @Valid CourseCreateRequest req) {
         return ApiResponse.success(courseService.create(req));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:manage')")
     public ApiResponse<Course> update(@PathVariable Long id, @RequestBody CourseUpdateRequest req) {
         return ApiResponse.success(courseService.update(id, req));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:read')")
     public ApiResponse<Course> get(@PathVariable Long id) {
         return ApiResponse.success(courseService.get(id));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:read')")
     public ApiResponse<Page<Course>> page(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long size,
@@ -60,21 +60,21 @@ public class CourseController {
     }
 
     @PostMapping("/{courseId}/students/{studentId}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:manage')")
     public ApiResponse<Void> addStudent(@PathVariable Long courseId, @PathVariable Long studentId) {
         courseService.addStudent(courseId, studentId);
         return ApiResponse.success();
     }
 
     @DeleteMapping("/{courseId}/students/{studentId}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:manage')")
     public ApiResponse<Void> removeStudent(@PathVariable Long courseId, @PathVariable Long studentId) {
         courseService.removeStudent(courseId, studentId);
         return ApiResponse.success();
     }
 
     @GetMapping("/{courseId}/students")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:read')")
     public ApiResponse<List<CourseStudentVO>> students(@PathVariable Long courseId) {
         return ApiResponse.success(courseService.listStudents(courseId));
     }

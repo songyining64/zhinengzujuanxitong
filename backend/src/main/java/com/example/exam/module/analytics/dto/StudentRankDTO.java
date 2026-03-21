@@ -16,4 +16,7 @@ public class StudentRankDTO {
     private String realName;
 
     private BigDecimal totalScore;
+
+    /** 是否达到及格线（未设及格线时为 null） */
+    private Boolean passed;
 }

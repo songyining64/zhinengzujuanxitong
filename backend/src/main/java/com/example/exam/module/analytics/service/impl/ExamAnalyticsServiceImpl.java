@@ -4,7 +4,9 @@ import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.exam.common.api.ErrorCode;
+import com.example.exam.common.enums.RoleEnum;
 import com.example.exam.common.exception.BizException;
+import com.example.exam.common.security.SecurityHelper;
 import com.example.exam.module.analytics.dto.ExamKnowledgeStatDTO;
 import com.example.exam.module.analytics.dto.ExamOverviewDTO;
 import com.example.exam.module.analytics.dto.ExamQuestionStatDTO;
@@ -27,6 +29,7 @@ import com.example.exam.module.question.mapper.KnowledgePointMapper;
 import com.example.exam.module.question.mapper.QuestionMapper;
 import com.example.exam.module.system.entity.User;
 import com.example.exam.module.system.mapper.UserMapper;
+import com.example.exam.module.system.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,6 +58,7 @@ public class ExamAnalyticsServiceImpl implements ExamAnalyticsService {
     private final KnowledgePointMapper knowledgePointMapper;
     private final UserMapper userMapper;
     private final CoursePermissionService coursePermissionService;
+    private final UserService userService;
 
     private Exam requireExam(Long examId) {
         Exam e = examMapper.selectById(examId);
@@ -64,10 +68,24 @@ public class ExamAnalyticsServiceImpl implements ExamAnalyticsService {
         return e;
     }
 
+    /** 学生端：成绩未发布时禁止查看统计与排名 */
+    private void assertStudentScorePublishedIfNeeded(Exam exam) {
+        User u = userService.findByUsername(SecurityHelper.requireUsername());
+        if (u == null) {
+            return;
+        }
+        if (RoleEnum.STUDENT.name().equals(u.getRole())) {
+            if (exam.getScorePublished() == null || exam.getScorePublished() == 0) {
+                throw new BizException(ErrorCode.FORBIDDEN, "成绩未发布，暂不可查看统计与排名");
+            }
+        }
+    }
+
     @Override
     public ExamOverviewDTO overview(Long examId) {
-        requireExam(examId);
+        Exam exam = requireExam(examId);
         coursePermissionService.assertExamReadable(examId);
+        assertStudentScorePublishedIfNeeded(exam);
         List<ExamRecord> submitted = examRecordMapper.selectList(new LambdaQueryWrapper<ExamRecord>()
                 .eq(ExamRecord::getExamId, examId)
                 .eq(ExamRecord::getStatus, ExamServiceImpl.RS_SUBMITTED));
@@ -75,6 +93,17 @@ public class ExamAnalyticsServiceImpl implements ExamAnalyticsService {
         dto.setExamId(examId);
         dto.setSubmittedCount(submitted.size());
         dto.setTotalRecords(submitted.size());
+        dto.setPassScore(exam.getPassScore());
+        dto.setScorePublished(exam.getScorePublished() != null && exam.getScorePublished() != 0);
+        long passCount = 0;
+        if (exam.getPassScore() != null) {
+            for (ExamRecord r : submitted) {
+                if (r.getTotalScore() != null && r.getTotalScore().compareTo(exam.getPassScore()) >= 0) {
+                    passCount++;
+                }
+            }
+        }
+        dto.setPassCount(passCount);
         BigDecimal sum = BigDecimal.ZERO;
         BigDecimal max = null;
         BigDecimal min = null;
@@ -99,8 +128,9 @@ public class ExamAnalyticsServiceImpl implements ExamAnalyticsService {
 
     @Override
     public Page<StudentRankDTO> rank(Long examId, long page, long size) {
-        requireExam(examId);
+        Exam exam = requireExam(examId);
         coursePermissionService.assertExamReadable(examId);
+        assertStudentScorePublishedIfNeeded(exam);
         List<ExamRecord> submitted = examRecordMapper.selectList(new LambdaQueryWrapper<ExamRecord>()
                 .eq(ExamRecord::getExamId, examId)
                 .eq(ExamRecord::getStatus, ExamServiceImpl.RS_SUBMITTED));
@@ -115,6 +145,11 @@ public class ExamAnalyticsServiceImpl implements ExamAnalyticsService {
             dto.setRank(rank++);
             dto.setStudentId(r.getStudentId());
             dto.setTotalScore(r.getTotalScore());
+            if (exam.getPassScore() != null && r.getTotalScore() != null) {
+                dto.setPassed(r.getTotalScore().compareTo(exam.getPassScore()) >= 0);
+            } else {
+                dto.setPassed(null);
+            }
             User u = userMapper.selectById(r.getStudentId());
             if (u != null) {
                 dto.setUsername(u.getUsername());
@@ -139,6 +174,7 @@ public class ExamAnalyticsServiceImpl implements ExamAnalyticsService {
     public List<ExamQuestionStatDTO> questionStats(Long examId) {
         Exam exam = requireExam(examId);
         coursePermissionService.assertExamReadable(examId);
+        assertStudentScorePublishedIfNeeded(exam);
         List<PaperQuestion> pqs = paperQuestionMapper.selectList(new LambdaQueryWrapper<PaperQuestion>()
                 .eq(PaperQuestion::getPaperId, exam.getPaperId()));
         List<ExamRecord> records = examRecordMapper.selectList(new LambdaQueryWrapper<ExamRecord>()
@@ -177,8 +213,6 @@ public class ExamAnalyticsServiceImpl implements ExamAnalyticsService {
 
     @Override
     public List<ExamKnowledgeStatDTO> knowledgePointStats(Long examId) {
-        requireExam(examId);
-        coursePermissionService.assertExamReadable(examId);
         List<ExamQuestionStatDTO> qs = questionStats(examId);
         Map<Long, List<ExamQuestionStatDTO>> byKp = new HashMap<>();
         for (ExamQuestionStatDTO s : qs) {

@@ -30,26 +30,26 @@ public class KnowledgePointController {
     private final KnowledgePointService knowledgePointService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('knowledge:manage')")
     public ApiResponse<KnowledgePoint> create(@RequestBody @Valid KnowledgePointCreateRequest req) {
         return ApiResponse.success(knowledgePointService.create(req));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('knowledge:manage')")
     public ApiResponse<KnowledgePoint> update(@PathVariable Long id, @RequestBody KnowledgePointUpdateRequest req) {
         return ApiResponse.success(knowledgePointService.update(id, req));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('knowledge:manage')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         knowledgePointService.delete(id);
         return ApiResponse.success();
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('knowledge:read')")
     public ApiResponse<List<KnowledgePoint>> list(@RequestParam Long courseId) {
         return ApiResponse.success(knowledgePointService.listByCourse(courseId));
     }

@@ -30,38 +30,38 @@ public class QuestionController {
     private final QuestionService questionService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('question:manage')")
     public ApiResponse<Question> create(@RequestBody @Valid QuestionCreateRequest req) {
         return ApiResponse.success(questionService.create(req));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('question:manage')")
     public ApiResponse<Question> update(@PathVariable Long id, @RequestBody QuestionUpdateRequest req) {
         return ApiResponse.success(questionService.update(id, req));
     }
 
     @PostMapping("/save")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('question:manage')")
     public ApiResponse<Question> save(@RequestBody @Valid QuestionSaveRequest req) {
         return ApiResponse.success(questionService.save(req));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('question:manage')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         questionService.delete(id);
         return ApiResponse.success();
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('question:read')")
     public ApiResponse<Question> get(@PathVariable Long id) {
         return ApiResponse.success(questionService.get(id));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('question:read')")
     public ApiResponse<Page<Question>> page(
             @RequestParam Long courseId,
             @RequestParam(required = false) Long knowledgePointId,

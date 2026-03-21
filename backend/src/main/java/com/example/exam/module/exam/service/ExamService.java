@@ -40,4 +40,10 @@ public interface ExamService {
     int autoSubmitExpiredRecords();
 
     void gradeAndFinalizeRecord(Long examRecordId);
+
+    /** 发布/撤回成绩（学生可见排名与统计） */
+    void setScorePublished(Long examId, boolean published);
+
+    /** 学生端上报切屏/失焦（超过上限将自动交卷） */
+    void reportSwitchBlur(Long examRecordId);
 }

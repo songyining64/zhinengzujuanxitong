@@ -21,7 +21,7 @@ public class ExamGradingController {
     private final ExamGradingService examGradingService;
 
     @PostMapping("/subjective")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
     public ApiResponse<Void> subjective(@RequestBody @Valid SubjectiveGradeRequest req) {
         examGradingService.gradeSubjective(req);
         return ApiResponse.success();

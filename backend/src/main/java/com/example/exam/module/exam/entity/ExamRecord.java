@@ -27,6 +27,12 @@ public class ExamRecord {
 
     private BigDecimal totalScore;
 
+    private Long shuffleSeed;
+
+    private String questionOrderJson;
+
+    private Integer switchBlurCount;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

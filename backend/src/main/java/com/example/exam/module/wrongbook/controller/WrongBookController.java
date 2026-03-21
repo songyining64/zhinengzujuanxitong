@@ -19,7 +19,7 @@ public class WrongBookController {
     private final WrongBookService wrongBookService;
 
     @GetMapping
-    @PreAuthorize("hasRole('STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('wrongbook:read')")
     public ApiResponse<Page<WrongBookVO>> page(
             @RequestParam Long courseId,
             @RequestParam(defaultValue = "1") long page,

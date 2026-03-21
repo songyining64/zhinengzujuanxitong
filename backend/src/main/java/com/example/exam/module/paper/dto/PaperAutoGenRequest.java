@@ -32,4 +32,10 @@ public class PaperAutoGenRequest {
 
     /** 题型 -> 数量，如 SINGLE -> 5 */
     private Map<String, Integer> countByType;
+
+    /**
+     * 难度权重（可选）：键 EASY / MEDIUM / HARD，对应题库 difficulty 1/2/3。
+     * 若设置，则在每个题型内按权重分配选题数量（如 3:5:2）。
+     */
+    private Map<String, Integer> difficultyWeights;
 }

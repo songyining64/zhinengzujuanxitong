@@ -90,9 +90,6 @@ public class PaperServiceImpl implements PaperService {
         return paperMapper.selectById(paper.getId());
     }
 
-    // helper for manual dedup - actually PaperManualRequest doesn't have dedup - user didn't ask for manual dedup
-    // Remove getDedupImplicit - I added wrong field. Fix createManual - remove dedupImplicit
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Paper generateAuto(PaperAutoGenRequest req) {
@@ -122,37 +119,88 @@ public class PaperServiceImpl implements PaperService {
         int order = 1;
         boolean dedup = !Boolean.FALSE.equals(req.getDedup());
 
+        Map<String, Integer> dw = req.getDifficultyWeights();
+        int wE = dw != null ? dw.getOrDefault("EASY", 0) : 0;
+        int wM = dw != null ? dw.getOrDefault("MEDIUM", 0) : 0;
+        int wH = dw != null ? dw.getOrDefault("HARD", 0) : 0;
+        boolean useDifficultyWeights = dw != null && !dw.isEmpty() && (wE + wM + wH) > 0;
+
         for (Map.Entry<String, Integer> e : req.getCountByType().entrySet()) {
             String type = e.getKey();
             int need = e.getValue() == null ? 0 : e.getValue();
             if (need <= 0) {
                 continue;
             }
-            List<Question> pool = questionMapper.selectList(new LambdaQueryWrapper<Question>()
-                    .eq(Question::getCourseId, req.getCourseId())
-                    .eq(Question::getType, type)
-                    .eq(Question::getStatus, 1)
-                    .in(Question::getKnowledgePointId, kpFilter));
-            List<Question> copy = new ArrayList<>(pool);
-            Collections.shuffle(copy, random);
-            int taken = 0;
-            for (Question q : copy) {
-                if (taken >= need) {
-                    break;
+            if (useDifficultyWeights) {
+                int[] alloc = allocateNeedByWeights(need, wE, wM, wH);
+                String[] tierNames = {"EASY", "MEDIUM", "HARD"};
+                for (int ti = 0; ti < 3; ti++) {
+                    int tierNeed = alloc[ti];
+                    if (tierNeed <= 0) {
+                        continue;
+                    }
+                    int tier = ti + 1;
+                    LambdaQueryWrapper<Question> wq = new LambdaQueryWrapper<Question>()
+                            .eq(Question::getCourseId, req.getCourseId())
+                            .eq(Question::getType, type)
+                            .eq(Question::getStatus, 1)
+                            .in(Question::getKnowledgePointId, kpFilter);
+                    if (tier == 1) {
+                        wq.and(x -> x.eq(Question::getDifficulty, 1).or().isNull(Question::getDifficulty));
+                    } else {
+                        wq.eq(Question::getDifficulty, tier);
+                    }
+                    List<Question> pool = questionMapper.selectList(wq);
+                    List<Question> copy = new ArrayList<>(pool);
+                    Collections.shuffle(copy, random);
+                    int taken = 0;
+                    for (Question q : copy) {
+                        if (taken >= tierNeed) {
+                            break;
+                        }
+                        if (dedup && picked.contains(q.getId())) {
+                            continue;
+                        }
+                        picked.add(q.getId());
+                        PaperQuestion pq = new PaperQuestion();
+                        pq.setQuestionId(q.getId());
+                        pq.setQuestionOrder(order++);
+                        pq.setScore(per);
+                        buffer.add(pq);
+                        taken++;
+                    }
+                    if (taken < tierNeed) {
+                        throw new BizException(ErrorCode.BAD_REQUEST,
+                                "题库不足: 题型 " + type + " 难度 " + tierNames[ti] + " 需要 " + tierNeed + " 题，仅可选 " + taken);
+                    }
                 }
-                if (dedup && picked.contains(q.getId())) {
-                    continue;
+            } else {
+                List<Question> pool = questionMapper.selectList(new LambdaQueryWrapper<Question>()
+                        .eq(Question::getCourseId, req.getCourseId())
+                        .eq(Question::getType, type)
+                        .eq(Question::getStatus, 1)
+                        .in(Question::getKnowledgePointId, kpFilter));
+                List<Question> copy = new ArrayList<>(pool);
+                Collections.shuffle(copy, random);
+                int taken = 0;
+                for (Question q : copy) {
+                    if (taken >= need) {
+                        break;
+                    }
+                    if (dedup && picked.contains(q.getId())) {
+                        continue;
+                    }
+                    picked.add(q.getId());
+                    PaperQuestion pq = new PaperQuestion();
+                    pq.setQuestionId(q.getId());
+                    pq.setQuestionOrder(order++);
+                    pq.setScore(per);
+                    buffer.add(pq);
+                    taken++;
                 }
-                picked.add(q.getId());
-                PaperQuestion pq = new PaperQuestion();
-                pq.setQuestionId(q.getId());
-                pq.setQuestionOrder(order++);
-                pq.setScore(per);
-                buffer.add(pq);
-                taken++;
-            }
-            if (taken < need) {
-                throw new BizException(ErrorCode.BAD_REQUEST, "题库不足: 题型 " + type + " 需要 " + need + " 题，仅可选 " + taken);
+                if (taken < need) {
+                    throw new BizException(ErrorCode.BAD_REQUEST, "题库不足: 题型 " + type + " 需要 " + need + " 题，仅可选 " + taken);
+                }
             }
         }
 
@@ -174,6 +222,7 @@ public class PaperServiceImpl implements PaperService {
             snap.put("randomSeed", seed);
             snap.put("dedup", req.getDedup());
             snap.put("countByType", req.getCountByType());
+            snap.put("difficultyWeights", req.getDifficultyWeights());
             paper.setRulesJson(objectMapper.writeValueAsString(snap));
         } catch (JsonProcessingException ex) {
             throw new BizException(ErrorCode.INTERNAL_ERROR, "规则序列化失败");
@@ -235,5 +284,17 @@ public class PaperServiceImpl implements PaperService {
         coursePermissionService.assertCourseManageable(paper.getCourseId());
         paperQuestionMapper.delete(new LambdaQueryWrapper<PaperQuestion>().eq(PaperQuestion::getPaperId, id));
         paperMapper.deleteById(id);
+    }
+
+    /** 按 EASY/MEDIUM/HARD 权重将 need 拆成三档题量 */
+    private static int[] allocateNeedByWeights(int need, int w1, int w2, int w3) {
+        int sum = w1 + w2 + w3;
+        if (sum <= 0) {
+            return new int[]{need, 0, 0};
+        }
+        int e = (int) Math.floor((double) need * w1 / sum);
+        int m = (int) Math.floor((double) need * w2 / sum);
+        int h = need - e - m;
+        return new int[]{e, m, h};
     }
 }

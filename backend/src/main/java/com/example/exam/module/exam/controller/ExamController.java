@@ -34,33 +34,48 @@ public class ExamController {
     private final ExamService examService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
     public ApiResponse<Exam> create(@RequestBody @Valid ExamCreateRequest req) {
         return ApiResponse.success(examService.create(req));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
     public ApiResponse<Exam> update(@PathVariable Long id, @RequestBody @Valid ExamCreateRequest req) {
         return ApiResponse.success(examService.update(id, req));
     }
 
     @PostMapping("/{id}/publish")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
     public ApiResponse<Void> publish(@PathVariable Long id) {
         examService.publish(id);
         return ApiResponse.success();
     }
 
     @PostMapping("/{id}/end")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
     public ApiResponse<Void> end(@PathVariable Long id) {
         examService.endExam(id);
         return ApiResponse.success();
     }
 
+    /** 发布成绩后学生方可查看排名与统计 */
+    @PostMapping("/{id}/publish-score")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
+    public ApiResponse<Void> publishScore(@PathVariable Long id) {
+        examService.setScorePublished(id, true);
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/{id}/unpublish-score")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
+    public ApiResponse<Void> unpublishScore(@PathVariable Long id) {
+        examService.setScorePublished(id, false);
+        return ApiResponse.success();
+    }
+
     @GetMapping("/teacher")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
     public ApiResponse<Page<Exam>> pageTeacher(
             @RequestParam Long courseId,
             @RequestParam(defaultValue = "1") long page,
@@ -80,7 +95,7 @@ public class ExamController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('exam:manage','exam:student')")
     public ApiResponse<Exam> get(@PathVariable Long id) {
         return ApiResponse.success(examService.get(id));
     }
@@ -92,7 +107,7 @@ public class ExamController {
     }
 
     @GetMapping("/record/{recordId}/questions")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('exam:manage','exam:student')")
     public ApiResponse<List<TakeQuestionVO>> questions(@PathVariable Long recordId) {
         return ApiResponse.success(examService.listTakeQuestions(recordId));
     }
@@ -114,6 +129,14 @@ public class ExamController {
             @RequestBody @Valid SubmitAnswerRequest req
     ) {
         examService.submitAnswers(recordId, req);
+        return ApiResponse.success();
+    }
+
+    /** 切屏/失焦上报（超过考试设置次数将自动交卷） */
+    @PostMapping("/record/{recordId}/blur")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ApiResponse<Void> blur(@PathVariable Long recordId) {
+        examService.reportSwitchBlur(recordId);
         return ApiResponse.success();
     }
 }

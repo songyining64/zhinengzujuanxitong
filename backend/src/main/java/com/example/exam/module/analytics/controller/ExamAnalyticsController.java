@@ -26,13 +26,13 @@ public class ExamAnalyticsController {
     private final ExamAnalyticsService examAnalyticsService;
 
     @GetMapping("/overview")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:analytics')")
     public ApiResponse<ExamOverviewDTO> overview(@RequestParam Long examId) {
         return ApiResponse.success(examAnalyticsService.overview(examId));
     }
 
     @GetMapping("/rank")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:analytics')")
     public ApiResponse<Page<StudentRankDTO>> rank(
             @RequestParam Long examId,
             @RequestParam(defaultValue = "1") long page,
@@ -42,19 +42,19 @@ public class ExamAnalyticsController {
     }
 
     @GetMapping("/question-stats")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:analytics')")
     public ApiResponse<List<ExamQuestionStatDTO>> questionStats(@RequestParam Long examId) {
         return ApiResponse.success(examAnalyticsService.questionStats(examId));
     }
 
     @GetMapping("/knowledge-point-stats")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:analytics')")
     public ApiResponse<List<ExamKnowledgeStatDTO>> kpStats(@RequestParam Long examId) {
         return ApiResponse.success(examAnalyticsService.knowledgePointStats(examId));
     }
 
     @GetMapping("/export-rank")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('exam:manage')")
     public void exportRank(@RequestParam Long examId, HttpServletResponse response) throws IOException {
         examAnalyticsService.exportRank(examId, response);
     }

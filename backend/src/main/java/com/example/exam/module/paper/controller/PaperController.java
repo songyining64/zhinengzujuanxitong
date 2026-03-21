@@ -29,19 +29,19 @@ public class PaperController {
     private final PaperService paperService;
 
     @PostMapping("/manual")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('paper:manage')")
     public ApiResponse<Paper> manual(@RequestBody @Valid PaperManualRequest req) {
         return ApiResponse.success(paperService.createManual(req));
     }
 
     @PostMapping("/auto-generate")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('paper:manage')")
     public ApiResponse<Paper> auto(@RequestBody @Valid PaperAutoGenRequest req) {
         return ApiResponse.success(paperService.generateAuto(req));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('paper:read')")
     public ApiResponse<Page<Paper>> page(
             @RequestParam Long courseId,
             @RequestParam(defaultValue = "1") long page,
@@ -51,13 +51,13 @@ public class PaperController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('paper:read')")
     public ApiResponse<PaperDetailVO> detail(@PathVariable Long id) {
         return ApiResponse.success(paperService.getDetail(id));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('paper:manage')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         paperService.delete(id);
         return ApiResponse.success();

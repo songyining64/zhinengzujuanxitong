@@ -1,6 +1,7 @@
 package com.example.exam.module.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.exam.common.enums.RoleEnum;
 import com.example.exam.common.security.SecurityHelper;
 import com.example.exam.module.system.dto.MenuTreeVO;
 import com.example.exam.module.system.entity.SysMenu;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +77,42 @@ public class SysMenuServiceImpl implements SysMenuService {
                 .thenComparing(MenuTreeVO::getId);
         sortTree(roots, cmp);
         return roots.stream().sorted(cmp).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> listGrantedPermsForRole(String role) {
+        if (RoleEnum.ADMIN.name().equals(role)) {
+            return sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+                            .isNotNull(SysMenu::getPerms)
+                            .ne(SysMenu::getPerms, ""))
+                    .stream()
+                    .map(SysMenu::getPerms)
+                    .flatMap(p -> Arrays.stream(p.split(",")))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .distinct()
+                    .toList();
+        }
+        List<Long> menuIds = sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenu>()
+                        .eq(SysRoleMenu::getRole, role)).stream()
+                .map(SysRoleMenu::getMenuId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (menuIds.isEmpty()) {
+            return List.of();
+        }
+        return sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+                        .in(SysMenu::getId, menuIds)
+                        .isNotNull(SysMenu::getPerms)
+                        .ne(SysMenu::getPerms, ""))
+                .stream()
+                .map(SysMenu::getPerms)
+                .flatMap(p -> Arrays.stream(p.split(",")))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
     }
 
     private void sortTree(List<MenuTreeVO> list, Comparator<MenuTreeVO> cmp) {
