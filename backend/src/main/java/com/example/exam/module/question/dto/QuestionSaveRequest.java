@@ -31,4 +31,6 @@ public class QuestionSaveRequest {
     private Integer difficulty;
 
     private Integer status;
+
+    private String reviewStatus;
 }

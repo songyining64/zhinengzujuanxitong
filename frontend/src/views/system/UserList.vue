@@ -10,7 +10,7 @@
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="username" label="用户名" />
       <el-table-column prop="realName" label="姓名" />
-      <el-table-column prop="roleName" label="角色" />
+      <el-table-column prop="role" label="角色" />
       <el-table-column prop="status" label="状态" />
     </el-table>
   </el-card>
@@ -18,17 +18,25 @@
 
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue';
-import axios from 'axios';
+import http from '@/api/http';
 
 const query = reactive({
   keyword: ''
 });
 
-const list = ref<any[]>([]);
+interface UserRow {
+  id: number;
+  username: string;
+  realName?: string;
+  role: string;
+  status: number;
+}
+
+const list = ref<UserRow[]>([]);
 
 const fetchData = async () => {
-  const { data } = await axios.get('/api/system/user', { params: query });
-  list.value = data.data?.records || [];
+  const { data } = await http.get<{ records: UserRow[] }>('/api/system/user', { params: query });
+  list.value = data?.records ?? [];
 };
 
 const onCreate = () => {

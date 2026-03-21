@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.exam.common.api.ApiResponse;
 import com.example.exam.module.paper.dto.PaperAutoGenRequest;
 import com.example.exam.module.paper.dto.PaperDetailVO;
+import com.example.exam.module.paper.dto.PaperFromTemplateRequest;
 import com.example.exam.module.paper.dto.PaperManualRequest;
 import com.example.exam.module.paper.entity.Paper;
+import com.example.exam.module.paper.entity.PaperGenerationLog;
 import com.example.exam.module.paper.service.PaperService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,25 @@ public class PaperController {
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('paper:manage')")
     public ApiResponse<Paper> auto(@RequestBody @Valid PaperAutoGenRequest req) {
         return ApiResponse.success(paperService.generateAuto(req));
+    }
+
+    @PostMapping("/from-template/{templateId}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('paper:manage')")
+    public ApiResponse<Paper> fromTemplate(
+            @PathVariable Long templateId,
+            @RequestBody @Valid PaperFromTemplateRequest req
+    ) {
+        return ApiResponse.success(paperService.generateFromTemplate(templateId, req));
+    }
+
+    @GetMapping("/generation-logs")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('paper:read')")
+    public ApiResponse<Page<PaperGenerationLog>> generationLogs(
+            @RequestParam Long courseId,
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "10") long size
+    ) {
+        return ApiResponse.success(paperService.pageGenerationLogs(courseId, page, size));
     }
 
     @GetMapping

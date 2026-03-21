@@ -2,6 +2,7 @@ package com.example.exam.module.exam.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.exam.module.exam.dto.ExamCreateRequest;
+import com.example.exam.module.exam.dto.ExamRecordSummaryDTO;
 import com.example.exam.module.exam.dto.ExamStartResponse;
 import com.example.exam.module.exam.dto.ExamStudentVO;
 import com.example.exam.module.exam.dto.SaveAnswersRequest;
@@ -32,6 +33,9 @@ public interface ExamService {
     void ensureExamAnswerRows(Long examRecordId);
 
     List<TakeQuestionVO> listTakeQuestions(Long examRecordId);
+
+    /** 答卷摘要（名次在成绩未发布时对学生不可见） */
+    ExamRecordSummaryDTO getRecordSummary(Long examRecordId);
 
     void saveAnswers(Long examRecordId, SaveAnswersRequest req);
 

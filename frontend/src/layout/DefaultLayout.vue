@@ -14,12 +14,13 @@
           <el-menu-item index="/">
             <span>首页</span>
           </el-menu-item>
-          <el-sub-menu index="/system">
-            <template #title>
-              <span>系统管理</span>
-            </template>
-            <el-menu-item index="/system/user">用户管理</el-menu-item>
-          </el-sub-menu>
+          <el-menu-item
+            v-for="m in menuTree"
+            :key="m.id"
+            :index="menuPath(m)"
+          >
+            <span>{{ m.name }}</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -29,6 +30,7 @@
             <span>{{ pageTitle }}</span>
           </div>
           <div class="right">
+            <span v-if="role" class="role-tag">{{ role }}</span>
             <el-dropdown>
               <span class="el-dropdown-link">
                 {{ username || '未登录' }}
@@ -51,20 +53,41 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppLogo from '@/components/AppLogo.vue';
+import http from '@/api/http';
+import type { MenuTreeVO } from '@/types/menu';
 
 const route = useRoute();
 const router = useRouter();
 
+const menuTree = ref<MenuTreeVO[]>([]);
+
 const activeMenu = computed(() => route.path);
 const pageTitle = computed(() => (route.meta.title as string) || '首页');
 const username = computed(() => localStorage.getItem('username') || '');
+const role = computed(() => localStorage.getItem('role') || '');
+
+function menuPath(m: MenuTreeVO): string {
+  if (m.path && m.path.startsWith('/')) return m.path;
+  if (m.path) return `/${m.path}`;
+  return `/menu-${m.id}`;
+}
+
+onMounted(async () => {
+  try {
+    const { data } = await http.get<MenuTreeVO[]>('/api/system/menu/tree');
+    menuTree.value = data || [];
+  } catch {
+    menuTree.value = [];
+  }
+});
 
 const logout = () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('username');
+  localStorage.removeItem('role');
   router.push('/login');
 };
 </script>
@@ -110,6 +133,15 @@ const logout = () => {
 .main {
   padding: 16px;
   background: #f5f7fa;
+}
+
+.role-tag {
+  margin-right: 12px;
+  font-size: 12px;
+  color: #606266;
+  background: #f0f2f5;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 </style>
 

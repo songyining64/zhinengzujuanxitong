@@ -24,4 +24,6 @@ public class QuestionUpdateRequest {
     private Integer difficulty;
 
     private Integer status;
+
+    private String reviewStatus;
 }

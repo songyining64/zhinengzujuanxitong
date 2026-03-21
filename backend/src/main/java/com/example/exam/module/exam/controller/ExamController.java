@@ -3,6 +3,7 @@ package com.example.exam.module.exam.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.exam.common.api.ApiResponse;
 import com.example.exam.module.exam.dto.ExamCreateRequest;
+import com.example.exam.module.exam.dto.ExamRecordSummaryDTO;
 import com.example.exam.module.exam.dto.ExamStartResponse;
 import com.example.exam.module.exam.dto.ExamStudentVO;
 import com.example.exam.module.exam.dto.SaveAnswersRequest;
@@ -110,6 +111,13 @@ public class ExamController {
     @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('exam:manage','exam:student')")
     public ApiResponse<List<TakeQuestionVO>> questions(@PathVariable Long recordId) {
         return ApiResponse.success(examService.listTakeQuestions(recordId));
+    }
+
+    /** 答卷摘要（分数、名次、及格、切屏等一次返回） */
+    @GetMapping("/record/{recordId}/summary")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('exam:manage','exam:student')")
+    public ApiResponse<ExamRecordSummaryDTO> recordSummary(@PathVariable Long recordId) {
+        return ApiResponse.success(examService.getRecordSummary(recordId));
     }
 
     @PostMapping("/record/{recordId}/save-answers")

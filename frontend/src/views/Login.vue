@@ -22,7 +22,8 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { ElMessage } from 'element-plus';
+import http from '@/api/http';
 
 const router = useRouter();
 const loading = ref(false);
@@ -32,17 +33,28 @@ const form = reactive({
   password: ''
 });
 
+interface LoginData {
+  token: string;
+  username: string;
+  realName?: string;
+  role: string;
+}
+
 const onSubmit = async () => {
-  if (!form.username || !form.password) return;
+  if (!form.username || !form.password) {
+    ElMessage.warning('请输入用户名和密码');
+    return;
+  }
   loading.value = true;
   try {
-    // TODO: 替换为真实后端登录接口
-    const { data } = await axios.post('/api/auth/login', form);
-    localStorage.setItem('access_token', data.data.token);
-    localStorage.setItem('username', data.data.username);
+    const { data } = await http.post<LoginData>('/api/auth/login', form);
+    localStorage.setItem('access_token', data.token);
+    localStorage.setItem('username', data.username);
+    localStorage.setItem('role', data.role);
+    ElMessage.success('登录成功');
     router.push('/');
-  } catch (e) {
-    // TODO: 错误提示
+  } catch {
+    /* 错误已由 http 拦截器提示 */
   } finally {
     loading.value = false;
   }

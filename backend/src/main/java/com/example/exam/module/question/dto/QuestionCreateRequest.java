@@ -31,4 +31,7 @@ public class QuestionCreateRequest {
     private BigDecimal scoreDefault;
 
     private Integer difficulty;
+
+    /** 可选：DRAFT/PENDING/PUBLISHED/REJECTED，默认 PUBLISHED */
+    private String reviewStatus;
 }

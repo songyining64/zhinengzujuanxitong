@@ -65,15 +65,41 @@ CREATE TABLE IF NOT EXISTS `question` (
   `difficulty` TINYINT DEFAULT 1,
   `creator_id` BIGINT DEFAULT NULL,
   `status` TINYINT NOT NULL DEFAULT 1,
+  `review_status` VARCHAR(32) NOT NULL DEFAULT 'PUBLISHED' COMMENT 'DRAFT/PENDING/PUBLISHED/REJECTED',
+  `version_no` INT NOT NULL DEFAULT 1 COMMENT '当前版本号',
   `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_q_course` (`course_id`),
   KEY `idx_q_kp` (`knowledge_point_id`),
+  KEY `idx_q_pool` (`course_id`, `type`, `knowledge_point_id`, `difficulty`, `status`, `review_status`),
   CONSTRAINT `fk_q_course` FOREIGN KEY (`course_id`) REFERENCES `course` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_q_kp` FOREIGN KEY (`knowledge_point_id`) REFERENCES `knowledge_point` (`id`),
   CONSTRAINT `fk_q_creator` FOREIGN KEY (`creator_id`) REFERENCES `sys_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='试题';
+
+CREATE TABLE IF NOT EXISTS `question_version` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `question_id` BIGINT NOT NULL,
+  `version_no` INT NOT NULL COMMENT '该快照对应的版本号',
+  `knowledge_point_id` BIGINT NOT NULL,
+  `type` VARCHAR(32) NOT NULL,
+  `stem` TEXT NOT NULL,
+  `options_json` TEXT DEFAULT NULL,
+  `answer` TEXT NOT NULL,
+  `analysis` TEXT DEFAULT NULL,
+  `score_default` DECIMAL(10,2) NOT NULL DEFAULT 10.00,
+  `difficulty` TINYINT DEFAULT 1,
+  `status` TINYINT NOT NULL DEFAULT 1,
+  `review_status` VARCHAR(32) DEFAULT NULL,
+  `editor_id` BIGINT DEFAULT NULL,
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_qv_q_v` (`question_id`, `version_no`),
+  KEY `idx_qv_question` (`question_id`),
+  CONSTRAINT `fk_qv_question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_qv_editor` FOREIGN KEY (`editor_id`) REFERENCES `sys_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='试题历史版本快照';
 
 CREATE TABLE IF NOT EXISTS `paper` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -91,6 +117,37 @@ CREATE TABLE IF NOT EXISTS `paper` (
   CONSTRAINT `fk_paper_course` FOREIGN KEY (`course_id`) REFERENCES `course` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_paper_creator` FOREIGN KEY (`creator_id`) REFERENCES `sys_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='试卷';
+
+CREATE TABLE IF NOT EXISTS `paper_template` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `course_id` BIGINT NOT NULL,
+  `name` VARCHAR(256) NOT NULL,
+  `rules_json` TEXT NOT NULL COMMENT 'PaperAutoGenRequest 不含 title',
+  `creator_id` BIGINT DEFAULT NULL,
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_pt_course` (`course_id`),
+  CONSTRAINT `fk_pt_course` FOREIGN KEY (`course_id`) REFERENCES `course` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pt_creator` FOREIGN KEY (`creator_id`) REFERENCES `sys_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='组卷模板';
+
+CREATE TABLE IF NOT EXISTS `paper_generation_log` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `paper_id` BIGINT DEFAULT NULL,
+  `course_id` BIGINT NOT NULL,
+  `operator_id` BIGINT NOT NULL,
+  `mode` VARCHAR(32) NOT NULL COMMENT 'AUTO / TEMPLATE',
+  `rules_json` TEXT DEFAULT NULL,
+  `duration_ms` INT DEFAULT NULL,
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_pgl_course_time` (`course_id`, `create_time`),
+  KEY `idx_pgl_paper` (`paper_id`),
+  CONSTRAINT `fk_pgl_course` FOREIGN KEY (`course_id`) REFERENCES `course` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pgl_operator` FOREIGN KEY (`operator_id`) REFERENCES `sys_user` (`id`),
+  CONSTRAINT `fk_pgl_paper` FOREIGN KEY (`paper_id`) REFERENCES `paper` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='组卷操作审计';
 
 CREATE TABLE IF NOT EXISTS `paper_question` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

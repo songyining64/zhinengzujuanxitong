@@ -37,6 +37,12 @@ public class Question {
 
     private Integer status;
 
+    /** 审核状态：见 {@link com.example.exam.common.enums.QuestionReviewStatusEnum} */
+    private String reviewStatus;
+
+    /** 当前版本号，每次归档后递增 */
+    private Integer versionNo;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

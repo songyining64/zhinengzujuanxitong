@@ -13,6 +13,7 @@ import com.example.exam.module.course.mapper.CourseMapper;
 import com.example.exam.module.course.mapper.CourseStudentMapper;
 import com.example.exam.module.course.service.CoursePermissionService;
 import com.example.exam.module.exam.dto.ExamCreateRequest;
+import com.example.exam.module.exam.dto.ExamRecordSummaryDTO;
 import com.example.exam.module.exam.dto.ExamStartResponse;
 import com.example.exam.module.exam.dto.ExamStudentVO;
 import com.example.exam.module.exam.dto.SaveAnswersRequest;
@@ -419,6 +420,77 @@ public class ExamServiceImpl implements ExamService {
     }
 
     @Override
+    public ExamRecordSummaryDTO getRecordSummary(Long examRecordId) {
+        User u = me();
+        ExamRecord record = examRecordMapper.selectById(examRecordId);
+        if (record == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "考试记录不存在");
+        }
+        Exam exam = examMapper.selectById(record.getExamId());
+        if (exam == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "考试不存在");
+        }
+        if (RoleEnum.STUDENT.name().equals(u.getRole())) {
+            if (!record.getStudentId().equals(u.getId())) {
+                throw new BizException(ErrorCode.FORBIDDEN, "无权查看该答卷");
+            }
+        } else {
+            coursePermissionService.assertExamReadable(record.getExamId());
+        }
+        ExamRecordSummaryDTO dto = new ExamRecordSummaryDTO();
+        dto.setRecordId(examRecordId);
+        dto.setExamId(exam.getId());
+        dto.setExamTitle(exam.getTitle());
+        dto.setCourseId(exam.getCourseId());
+        dto.setRecordStatus(record.getStatus());
+        dto.setTotalScore(record.getTotalScore());
+        dto.setPassScore(exam.getPassScore());
+        dto.setScorePublished(exam.getScorePublished() != null && exam.getScorePublished() != 0);
+        dto.setSwitchBlurCount(record.getSwitchBlurCount());
+        dto.setSwitchBlurLimit(exam.getSwitchBlurLimit());
+        dto.setSubmittedAt(record.getSubmittedAt());
+        dto.setStartedAt(record.getStartedAt());
+        if (record.getStartedAt() != null) {
+            LocalDateTime deadline = record.getStartedAt().plusMinutes(exam.getDurationMinutes());
+            if (exam.getEndTime() != null && exam.getEndTime().isBefore(deadline)) {
+                deadline = exam.getEndTime();
+            }
+            dto.setDeadlineAt(deadline);
+        }
+        if (exam.getPassScore() != null && record.getTotalScore() != null) {
+            dto.setPassed(record.getTotalScore().compareTo(exam.getPassScore()) >= 0);
+        } else {
+            dto.setPassed(null);
+        }
+        if (RS_SUBMITTED.equals(record.getStatus())) {
+            List<ExamRecord> submitted = examRecordMapper.selectList(new LambdaQueryWrapper<ExamRecord>()
+                    .eq(ExamRecord::getExamId, exam.getId())
+                    .eq(ExamRecord::getStatus, RS_SUBMITTED));
+            submitted.sort(Comparator
+                    .comparing((ExamRecord r) -> r.getTotalScore() == null ? BigDecimal.ZERO : r.getTotalScore())
+                    .reversed()
+                    .thenComparing(ExamRecord::getStudentId));
+            dto.setRankTotal(submitted.size());
+            boolean showRank = !RoleEnum.STUDENT.name().equals(u.getRole())
+                    || Boolean.TRUE.equals(dto.getScorePublished());
+            if (showRank) {
+                int rank = 1;
+                for (ExamRecord r : submitted) {
+                    if (r.getId().equals(examRecordId)) {
+                        dto.setRank(rank);
+                        break;
+                    }
+                    rank++;
+                }
+            }
+        } else {
+            dto.setRank(null);
+            dto.setRankTotal(null);
+        }
+        return dto;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void saveAnswers(Long examRecordId, SaveAnswersRequest req) {
         User u = me();
@@ -433,6 +505,9 @@ public class ExamServiceImpl implements ExamService {
             throw new BizException(ErrorCode.CONFLICT, "仅进行中的考试可保存");
         }
         coursePermissionService.assertExamReadable(record.getExamId());
+        if (req.getAnswers() == null) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "answers 不能为空");
+        }
         List<SubmitAnswerRequest.AnswerItem> mapped = new ArrayList<>();
         for (SaveAnswersRequest.AnswerItem a : req.getAnswers()) {
             SubmitAnswerRequest.AnswerItem i = new SubmitAnswerRequest.AnswerItem();
