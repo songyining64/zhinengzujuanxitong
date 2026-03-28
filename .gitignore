@@ -1,0 +1,21 @@
+# Backend
+backend/target/
+backend/uploads/
+backend/.idea/
+backend/*.iml
+backend/.classpath
+backend/.project
+backend/.settings/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.log
