@@ -19,6 +19,7 @@ import java.util.Set;
 
 /**
  * 初始化菜单与角色-菜单绑定，使 sys_menu.perms 与接口 {@code hasAuthority} 一致。
+ * 合并为单一路径，避免同一 path 出现多条菜单导致前端高亮异常。
  */
 @Component
 @RequiredArgsConstructor
@@ -53,19 +54,17 @@ public class MenuAndPermissionSeed {
             return;
         }
         List<SysMenu> menus = new ArrayList<>();
-        menus.add(menu("用户管理", "system/user", "system:user:manage"));
-        menus.add(menu("课程浏览", "course", "course:read"));
-        menus.add(menu("课程管理", "course", "course:manage"));
-        menus.add(menu("知识点管理", "knowledge", "knowledge:manage"));
-        menus.add(menu("知识点浏览", "knowledge", "knowledge:read"));
-        menus.add(menu("题库管理", "question", "question:manage"));
-        menus.add(menu("题库浏览", "question", "question:read"));
-        menus.add(menu("试卷管理", "paper", "paper:manage"));
-        menus.add(menu("试卷浏览", "paper", "paper:read"));
-        menus.add(menu("考试管理", "exam", "exam:manage"));
-        menus.add(menu("学生考试", "exam/take", "exam:student"));
-        menus.add(menu("成绩统计", "exam/stats", "exam:analytics"));
-        menus.add(menu("错题本", "wrongbook", "wrongbook:read"));
+        menus.add(menu("用户管理", "system/user", "system:user:manage", 10));
+        menus.add(menu("课程中心", "course", "course:read,course:manage", 20));
+        menus.add(menu("知识点", "knowledge", "knowledge:read,knowledge:manage", 30));
+        menus.add(menu("题库", "question", "question:read,question:manage", 40));
+        menus.add(menu("试卷与组卷", "paper", "paper:read,paper:manage", 50));
+        menus.add(menu("文件与文本", "tools/file", "course:read", 52));
+        menus.add(menu("主观题阅卷", "exam/grading", "exam:manage", 55));
+        menus.add(menu("考试管理", "exam", "exam:manage", 60));
+        menus.add(menu("我的考试", "exam/take", "exam:student", 70));
+        menus.add(menu("成绩分析", "exam/stats", "exam:analytics", 80));
+        menus.add(menu("错题本", "wrongbook", "wrongbook:read", 90));
 
         for (SysMenu m : menus) {
             sysMenuMapper.insert(m);
@@ -76,26 +75,38 @@ public class MenuAndPermissionSeed {
             link(RoleEnum.ADMIN.name(), m.getId());
         }
         for (SysMenu m : all) {
-            String p = m.getPerms();
-            if (p != null && TEACHER_PERMS.contains(p)) {
+            if (menuVisibleForRole(m, TEACHER_PERMS)) {
                 link(RoleEnum.TEACHER.name(), m.getId());
             }
         }
         for (SysMenu m : all) {
-            String p = m.getPerms();
-            if (p != null && STUDENT_PERMS.contains(p)) {
+            if (menuVisibleForRole(m, STUDENT_PERMS)) {
                 link(RoleEnum.STUDENT.name(), m.getId());
             }
         }
     }
 
-    private SysMenu menu(String name, String path, String perms) {
+    private boolean menuVisibleForRole(SysMenu m, Set<String> granted) {
+        String p = m.getPerms();
+        if (p == null || p.isBlank()) {
+            return false;
+        }
+        for (String part : p.split(",")) {
+            String t = part.trim();
+            if (!t.isEmpty() && granted.contains(t)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private SysMenu menu(String name, String path, String perms, int sortOrder) {
         SysMenu m = new SysMenu();
         m.setParentId(null);
         m.setName(name);
         m.setPath(path);
         m.setIcon(null);
-        m.setSortOrder(0);
+        m.setSortOrder(sortOrder);
         m.setPerms(perms);
         m.setCreateTime(LocalDateTime.now());
         return m;

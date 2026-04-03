@@ -21,11 +21,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class SysMenuServiceImpl implements SysMenuService {
+
+    /** 与 {@link com.example.exam.config.MenuAndPermissionSeed} 中非 ADMIN 角色可持有的权限一致，用于过滤合并菜单中的多权限字符串 */
+    private static final Set<String> TEACHER_PERMS = Set.of(
+            "course:read", "course:manage",
+            "knowledge:manage", "knowledge:read",
+            "question:manage", "question:read",
+            "paper:manage", "paper:read",
+            "exam:manage", "exam:analytics"
+    );
+
+    private static final Set<String> STUDENT_PERMS = Set.of(
+            "course:read",
+            "knowledge:read",
+            "question:read",
+            "paper:read",
+            "exam:student",
+            "exam:analytics",
+            "wrongbook:read"
+    );
 
     private final SysMenuMapper sysMenuMapper;
     private final SysRoleMenuMapper sysRoleMenuMapper;
@@ -102,7 +122,7 @@ public class SysMenuServiceImpl implements SysMenuService {
         if (menuIds.isEmpty()) {
             return List.of();
         }
-        return sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+        List<String> tokens = sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
                         .in(SysMenu::getId, menuIds)
                         .isNotNull(SysMenu::getPerms)
                         .ne(SysMenu::getPerms, ""))
@@ -113,6 +133,15 @@ public class SysMenuServiceImpl implements SysMenuService {
                 .filter(s -> !s.isEmpty())
                 .distinct()
                 .toList();
+        Set<String> allowed;
+        if (RoleEnum.TEACHER.name().equals(role)) {
+            allowed = TEACHER_PERMS;
+        } else if (RoleEnum.STUDENT.name().equals(role)) {
+            allowed = STUDENT_PERMS;
+        } else {
+            allowed = Set.of();
+        }
+        return tokens.stream().filter(allowed::contains).distinct().toList();
     }
 
     private void sortTree(List<MenuTreeVO> list, Comparator<MenuTreeVO> cmp) {

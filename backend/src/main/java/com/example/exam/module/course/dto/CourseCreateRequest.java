@@ -12,4 +12,7 @@ public class CourseCreateRequest {
     private String description;
 
     private String code;
+
+    /** 管理员创建课程时必填：指定授课教师用户 ID */
+    private Long teacherId;
 }
