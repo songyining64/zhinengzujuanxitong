@@ -1,4 +1,5 @@
-import http from '../http'
+import http from '../http';
+import type { Question, QuestionDedupResultVO } from '@/types/models';
 
 /** 分页查询试题（支持 reviewStatus: DRAFT/PENDING/PUBLISHED/REJECTED） */
 export function fetchQuestionPage(params: {
@@ -10,7 +11,34 @@ export function fetchQuestionPage(params: {
   page?: number
   size?: number
 }) {
-  return http.get('/api/question', { params })
+  return http.get<{ records: Question[]; total: number }>('/api/question', { params });
+}
+
+export function getQuestion(id: number) {
+  return http.get<Question>(`/api/question/${id}`);
+}
+
+export type QuestionSaveBody = {
+  id?: number;
+  courseId: number;
+  knowledgePointId: number;
+  type?: string;
+  stem?: string;
+  optionsJson?: string;
+  answer?: string;
+  analysis?: string;
+  scoreDefault?: number;
+  difficulty?: number;
+  status?: number;
+  reviewStatus?: string;
+};
+
+export function saveQuestion(body: QuestionSaveBody) {
+  return http.post<Question>('/api/question/save', body);
+}
+
+export function deleteQuestion(id: number) {
+  return http.delete(`/api/question/${id}`);
 }
 
 /** 导出为 xlsx（走原生 fetch，因响应为二进制非 JSON） */
@@ -70,7 +98,7 @@ export function dedupCheck(data: {
   knowledgePointId?: number
   threshold?: number
 }) {
-  return http.post('/api/question/dedup-check', data)
+  return http.post<QuestionDedupResultVO>('/api/question/dedup-check', data);
 }
 
 export function listQuestionVersions(questionId: number) {

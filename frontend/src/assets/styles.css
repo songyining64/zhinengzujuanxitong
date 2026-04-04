@@ -3,3 +3,11 @@ body {
   background-color: #f5f7fa;
 }
 
+/* 响应式容器：与 Element 栅格配合 */
+@media (max-width: 576px) {
+  .el-pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+

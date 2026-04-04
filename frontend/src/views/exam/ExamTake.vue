@@ -25,7 +25,7 @@
             </span>
           </div>
           <div class="toolbar-right">
-            <span class="save-hint" v-if="lastSavedText">草稿 {{ lastSavedText }}</span>
+            <span class="save-hint" v-if="lastSavedText">自动保存 {{ lastSavedText }}</span>
             <span class="timer" :class="{ danger: remainSeconds <= 300 && remainSeconds > 0 }">
               剩余时间 {{ remainText }}
             </span>
@@ -34,64 +34,97 @@
         </div>
       </el-affix>
 
-      <div class="question-list">
-        <el-card v-for="q in questions" :key="q.questionId" class="q-card" shadow="never">
-          <div class="q-head">
-            <span class="no">{{ q.orderNo }}.</span>
-            <el-tag size="small" type="info">{{ typeLabel(q.type) }}</el-tag>
-            <span class="score">（{{ q.score }} 分）</span>
-          </div>
-          <div class="stem" v-html="formatStem(q.stem)"></div>
+      <el-row :gutter="20" class="exam-body">
+        <el-col :xs="24" :sm="24" :md="7" :lg="6" class="nav-col">
+          <el-card shadow="never" class="nav-card">
+            <template #header>
+              <span>题号导航</span>
+              <el-text size="small" type="info">{{ currentIdx + 1 }} / {{ questions.length }}</el-text>
+            </template>
+            <div class="nav-grid">
+              <el-button
+                v-for="(q, i) in questions"
+                :key="q.questionId"
+                :type="i === currentIdx ? 'primary' : isAnswered(q.questionId) ? 'success' : 'default'"
+                size="small"
+                class="nav-btn"
+                @click="currentIdx = i"
+              >
+                {{ q.orderNo }}
+              </el-button>
+            </div>
+            <p class="nav-legend">
+              <span class="dot primary" /> 当前
+              <span class="dot success" /> 已答
+            </p>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="24" :md="17" :lg="18" class="answer-col">
+          <el-card v-if="currentQ" class="q-card" shadow="never">
+            <div class="q-head">
+              <span class="no">{{ currentQ.orderNo }}.</span>
+              <el-tag size="small" type="info">{{ typeLabel(currentQ.type) }}</el-tag>
+              <span class="score">（{{ currentQ.score }} 分）</span>
+            </div>
+            <div class="stem" v-html="stemHtml(currentQ.stem)"></div>
 
-          <!-- 单选 / 判断 -->
-          <el-radio-group
-            v-if="q.type === 'SINGLE' || q.type === 'TRUE_FALSE'"
-            v-model="answers[q.questionId]"
-            class="opt-block"
-            @change="scheduleDebouncedSave"
-          >
-            <el-radio
-              v-for="(opt, idx) in parseOptions(q.optionsJson)"
-              :key="idx"
-              :label="letter(idx)"
+            <el-radio-group
+              v-if="currentQ.type === 'SINGLE' || currentQ.type === 'TRUE_FALSE'"
+              v-model="answers[currentQ.questionId]"
+              class="opt-block"
+              @change="scheduleDebouncedSave"
             >
-              {{ letter(idx) }}. {{ opt }}
-            </el-radio>
-          </el-radio-group>
-
-          <!-- 多选 -->
-          <div v-else-if="q.type === 'MULTIPLE'" class="opt-block">
-            <el-checkbox-group
-              :model-value="multiModel(q.questionId)"
-              @change="(v: string[]) => onMultiChange(q.questionId, v)"
-            >
-              <el-checkbox v-for="(opt, idx) in parseOptions(q.optionsJson)" :key="idx" :label="letter(idx)">
+              <el-radio
+                v-for="(opt, idx) in parseOptions(currentQ.optionsJson)"
+                :key="idx"
+                :label="letter(idx)"
+              >
                 {{ letter(idx) }}. {{ opt }}
-              </el-checkbox>
-            </el-checkbox-group>
-          </div>
+              </el-radio>
+            </el-radio-group>
 
-          <!-- 填空 -->
-          <el-input
-            v-else-if="q.type === 'FILL'"
-            v-model="answers[q.questionId]"
-            placeholder="请填写答案"
-            @input="scheduleDebouncedSave"
-          />
+            <div v-else-if="currentQ.type === 'MULTIPLE'" class="opt-block">
+              <el-checkbox-group
+                :model-value="multiModel(currentQ.questionId)"
+                @change="(v: string[]) => onMultiChange(currentQ.questionId, v)"
+              >
+                <el-checkbox
+                  v-for="(opt, idx) in parseOptions(currentQ.optionsJson)"
+                  :key="idx"
+                  :label="letter(idx)"
+                >
+                  {{ letter(idx) }}. {{ opt }}
+                </el-checkbox>
+              </el-checkbox-group>
+            </div>
 
-          <!-- 简答 -->
-          <el-input
-            v-else-if="q.type === 'SHORT'"
-            v-model="answers[q.questionId]"
-            type="textarea"
-            :rows="5"
-            placeholder="请作答"
-            @input="scheduleDebouncedSave"
-          />
+            <el-input
+              v-else-if="currentQ.type === 'FILL'"
+              v-model="answers[currentQ.questionId]"
+              placeholder="请填写答案"
+              @input="scheduleDebouncedSave"
+            />
 
-          <div v-else class="unknown-type">暂不支持的题型：{{ q.type }}</div>
-        </el-card>
-      </div>
+            <el-input
+              v-else-if="currentQ.type === 'SHORT'"
+              v-model="answers[currentQ.questionId]"
+              type="textarea"
+              :rows="8"
+              placeholder="请作答"
+              @input="scheduleDebouncedSave"
+            />
+
+            <div v-else class="unknown-type">暂不支持的题型：{{ currentQ.type }}</div>
+
+            <div class="q-foot">
+              <el-button :disabled="currentIdx <= 0" @click="currentIdx--">上一题</el-button>
+              <el-button :disabled="currentIdx >= questions.length - 1" type="primary" @click="currentIdx++">
+                下一题
+              </el-button>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
     </template>
 
     <el-empty v-else-if="!pageLoading" description="无法加载试卷" />
@@ -120,6 +153,19 @@ const questions = ref<TakeQuestion[]>([]);
 const answers = reactive<Record<number, string>>({});
 const lastSavedAt = ref<number | null>(null);
 const remainSeconds = ref(0);
+const currentIdx = ref(0);
+
+const currentQ = computed(() => {
+  const qs = questions.value;
+  if (!qs.length) return null;
+  const i = Math.min(Math.max(currentIdx.value, 0), qs.length - 1);
+  return qs[i];
+});
+
+function isAnswered(qid: number) {
+  const v = answers[qid];
+  return v != null && String(v).trim() !== '';
+}
 
 let tickTimer: ReturnType<typeof setInterval> | null = null;
 let autoSaveTimer: ReturnType<typeof setInterval> | null = null;
@@ -189,7 +235,9 @@ function parseOptions(json: string | null): string[] {
   return [];
 }
 
-function formatStem(stem: string) {
+function stemHtml(stem: string) {
+  if (!stem) return '';
+  if (/<[a-z][\s\S]*>/i.test(stem)) return stem;
   return stem.replace(/\n/g, '<br/>');
 }
 
@@ -228,6 +276,7 @@ async function loadAll() {
     ]);
     summary.value = sumRes.data;
     questions.value = qRes.data || [];
+    currentIdx.value = 0;
 
     for (const q of questions.value) {
       if (q.userAnswer != null && q.userAnswer !== '') {
@@ -320,8 +369,61 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .exam-take {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
+}
+
+.exam-body {
+  margin-top: 8px;
+}
+
+.nav-card :deep(.el-card__header) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nav-btn {
+  min-width: 40px;
+  padding: 8px 10px;
+}
+
+.nav-legend {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #909399;
+}
+
+.nav-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin: 0 4px 0 10px;
+  vertical-align: middle;
+}
+.nav-legend .dot.primary {
+  background: #409eff;
+}
+.nav-legend .dot.success {
+  background: #67c23a;
+}
+
+.answer-col .q-card {
+  min-height: 360px;
+}
+
+.q-foot {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 .exam-toolbar {

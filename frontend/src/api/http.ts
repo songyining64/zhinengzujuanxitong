@@ -1,6 +1,7 @@
 import axios, { type AxiosResponse } from 'axios';
 import { ElMessage } from 'element-plus';
 import router from '@/router';
+import { FRONTEND_DEMO_TOKEN, isDemoSession } from '@/constants/auth';
 
 /** 统一封装：Bearer、业务 code、401 跳转 */
 const http = axios.create({
@@ -10,7 +11,8 @@ const http = axios.create({
 
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
-  if (token) {
+  /** 演示令牌不发给后端，避免无效 JWT 触发统一 401 踢回登录 */
+  if (token && token !== FRONTEND_DEMO_TOKEN) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -33,6 +35,9 @@ http.interceptors.response.use(
     const body = err.response?.data as { msg?: string; message?: string } | undefined;
     const msg = body?.msg || body?.message;
     if (status === 401) {
+      if (isDemoSession()) {
+        return Promise.reject(err);
+      }
       localStorage.removeItem('access_token');
       localStorage.removeItem('username');
       localStorage.removeItem('role');
