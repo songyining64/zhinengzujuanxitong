@@ -94,7 +94,10 @@
           <div class="q-main">
             <div class="q-title">
               <span class="q-id">第 {{ idx + 1 }} 题</span>
-              <el-tag size="small" class="q-type">{{ typeLabel(row.type) }}</el-tag>
+              <el-tag size="small" class="q-type" type="info">{{ typeLabel(row.type) }}</el-tag>
+              <el-tag v-if="row.difficulty != null" size="small" :type="difficultyTagType(row.difficulty)">
+                {{ difficultyLabel(row.difficulty) }}
+              </el-tag>
             </div>
             <div class="q-meta">
               <span>知识点: {{ row.knowledgePointId }}</span>
@@ -294,7 +297,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted, watch } from 'vue';
+import { computed, nextTick, reactive, ref, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import type { FormInstance, FormRules, UploadRawFile } from 'element-plus';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import http from '@/api/http';
@@ -407,6 +411,8 @@ const editRules: FormRules = {
 const versionVisible = ref(false);
 const versionList = ref<QuestionVersionVO[]>([]);
 
+const route = useRoute();
+
 function courseLabel(c: CourseRow) {
   if (c.code) return `${c.name}（${c.code}）`;
   return c.name;
@@ -427,6 +433,20 @@ function typeLabel(t: string | undefined) {
     default:
       return t || '-';
   }
+}
+
+function difficultyLabel(d: number) {
+  if (d <= 2) return '简单';
+  if (d <= 3) return '中等';
+  if (d <= 4) return '较难';
+  return '困难';
+}
+
+function difficultyTagType(d: number): 'success' | 'warning' | 'danger' | 'info' {
+  if (d <= 2) return 'success';
+  if (d <= 3) return 'info';
+  if (d <= 4) return 'warning';
+  return 'danger';
 }
 
 function reviewLabel(t: string | undefined) {
@@ -801,12 +821,33 @@ async function openVersions(row: QuestionRow) {
   versionVisible.value = true;
 }
 
+function sidebarNewQuery(): string | undefined {
+  const q = route.query.action;
+  if (q == null) return undefined;
+  if (Array.isArray(q)) return q[0] ?? undefined;
+  return q;
+}
+
+async function tryOpenNewFromQuery() {
+  await nextTick();
+  if (sidebarNewQuery() !== 'new') return;
+  openCreate();
+}
+
 onMounted(async () => {
   await fetchCourses();
   await fetchKnowledgePoints();
   editKpTree.value = selectedCourseId.value ? await fetchKnowledgePointsByCourse(selectedCourseId.value) : [];
   await fetchQuestions();
+  await tryOpenNewFromQuery();
 });
+
+watch(
+  () => route.query.action,
+  () => {
+    void tryOpenNewFromQuery();
+  }
+);
 
 watch(
   () => editForm.courseId,
@@ -829,7 +870,7 @@ watch(
 .qm-page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .topbar {
@@ -848,7 +889,9 @@ watch(
 
 .filter-card,
 .list-card {
-  border-radius: 10px;
+  border-radius: 14px;
+  box-shadow: 0 2px 14px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(52, 152, 219, 0.12);
 }
 
 .toolbar-row {
@@ -870,21 +913,27 @@ watch(
 .question-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 12px;
 }
 
 .question-item {
-  padding: 14px 2px;
-  border-bottom: 1px solid #eef0f4;
+  padding: 16px 18px;
+  background: #fafbfc;
+  border-radius: 12px;
+  border: 1px solid rgba(52, 152, 219, 0.08);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   min-height: 102px;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.question-item:last-child {
-  border-bottom: none;
+.question-item:hover {
+  border-color: rgba(52, 152, 219, 0.22);
+  box-shadow: 0 4px 18px rgba(52, 152, 219, 0.08);
 }
 
 .q-main {
@@ -920,10 +969,11 @@ watch(
 .q-stem {
   font-size: 14px;
   color: #303133;
-  line-height: 1.5;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .q-actions {

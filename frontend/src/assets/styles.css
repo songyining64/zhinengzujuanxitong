@@ -60,11 +60,13 @@ body,
   position: relative;
 }
 
-/* 业务页内容区：浅蓝灰底 + 白卡片 */
+/* 业务页内容区：组卷网式浅灰底 + 白卡片 */
 .main-shell {
-  min-height: calc(100vh - 64px);
-  padding: 20px 24px 32px;
-  background: linear-gradient(180deg, #eef5fb 0%, #f5f8fc 40%, #eef2f7 100%);
+  flex: 1;
+  min-height: 0;
+  padding: 22px 26px 36px;
+  background: #e8edf3;
+  overflow-y: auto;
 }
 
 .page-card {
