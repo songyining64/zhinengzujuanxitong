@@ -1,0 +1,54 @@
+-- =============================================================================
+-- 未来扩展表结构草案（与 doc/核心业务深化与路线图.md 配套）
+-- 请勿在未评审前直接在生产环境执行；需与迁移脚本、外键策略一并设计。
+-- =============================================================================
+
+-- 试题审核记录
+-- CREATE TABLE question_review_log (
+--   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--   question_id BIGINT NOT NULL,
+--   from_status VARCHAR(32) NOT NULL,
+--   to_status VARCHAR(32) NOT NULL,
+--   operator_id BIGINT NOT NULL,
+--   comment VARCHAR(512) DEFAULT NULL,
+--   create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+--   KEY idx_qr_question (question_id)
+-- );
+
+-- 试题版本快照
+-- CREATE TABLE question_version (
+--   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--   question_id BIGINT NOT NULL,
+--   version_no INT NOT NULL,
+--   stem_snapshot TEXT NOT NULL,
+--   options_json_snapshot TEXT NULL,
+--   answer_snapshot TEXT NOT NULL,
+--   editor_id BIGINT,
+--   create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+--   UNIQUE KEY uk_qv (question_id, version_no)
+-- );
+
+-- 组卷模板
+-- CREATE TABLE paper_template (
+--   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--   course_id BIGINT NOT NULL,
+--   name VARCHAR(256) NOT NULL,
+--   rules_json TEXT NOT NULL,
+--   creator_id BIGINT,
+--   create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+--   update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+-- );
+
+-- 组卷/组卷操作审计
+-- CREATE TABLE paper_generation_log (
+--   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--   paper_id BIGINT,
+--   operator_id BIGINT NOT NULL,
+--   mode VARCHAR(32) NOT NULL,
+--   rules_json TEXT,
+--   duration_ms INT,
+--   client_ip VARCHAR(64),
+--   create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+--   KEY idx_pgl_operator (operator_id),
+--   KEY idx_pgl_time (create_time)
+-- );
