@@ -342,7 +342,7 @@ interface QuestionRow {
   analysis?: string;
   scoreDefault?: number;
   difficulty?: number;
-  status: number;
+  status?: number;
   reviewStatus?: string;
   updateTime?: string;
 }
@@ -525,7 +525,7 @@ const fetchQuestions = async () => {
   }
   loading.value = true;
   try {
-    const { data } = await fetchQuestionPage({
+    const p = await fetchQuestionPage({
       courseId: selectedCourseId.value,
       knowledgePointId: selectedKpId.value,
       type: query.type || undefined,
@@ -534,7 +534,6 @@ const fetchQuestions = async () => {
       page: page.value,
       size: size.value
     });
-    const p = data as QuestionPage | undefined;
     list.value = p?.records ?? [];
     total.value = p?.total ?? 0;
   } finally {
@@ -798,8 +797,7 @@ const beforeImportUpload = async (file: UploadRawFile) => {
 };
 
 async function openVersions(row: QuestionRow) {
-  const { data } = await listQuestionVersions(row.id);
-  versionList.value = data ?? [];
+  versionList.value = (await listQuestionVersions(row.id)) ?? [];
   versionVisible.value = true;
 }
 

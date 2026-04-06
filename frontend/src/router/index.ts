@@ -34,10 +34,28 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '用户管理' }
       },
       {
+        path: 'system/menu',
+        name: 'SystemMenu',
+        component: () => import('@/views/system/MenuManage.vue'),
+        meta: { title: '菜单管理' }
+      },
+      {
         path: 'course',
         name: 'Course',
         component: () => import('@/views/course/CourseList.vue'),
         meta: { title: '课程中心' }
+      },
+      {
+        path: 'course/browse',
+        name: 'CourseBrowse',
+        component: () => import('@/views/course/CourseBrowse.vue'),
+        meta: { title: '课程浏览' }
+      },
+      {
+        path: 'course/manage',
+        name: 'CourseManage',
+        component: () => import('@/views/course/CourseManage.vue'),
+        meta: { title: '课程管理' }
       },
       {
         path: 'knowledge',
@@ -46,16 +64,46 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '知识点' }
       },
       {
+        path: 'knowledge/browse',
+        name: 'KnowledgeBrowse',
+        component: () => import('@/views/knowledge/KnowledgeBrowse.vue'),
+        meta: { title: '知识点浏览' }
+      },
+      {
         path: 'question',
         name: 'Question',
         component: () => import('@/views/question/QuestionBank.vue'),
         meta: { title: '题库' }
       },
       {
+        path: 'question/manage',
+        name: 'QuestionManage',
+        component: () => import('@/views/question/QuestionManage.vue'),
+        meta: { title: '题库管理' }
+      },
+      {
+        path: 'question/browse',
+        name: 'QuestionBrowse',
+        component: () => import('@/views/question/QuestionBrowse.vue'),
+        meta: { title: '题库浏览' }
+      },
+      {
         path: 'paper',
         name: 'Paper',
         component: () => import('@/views/paper/PaperCompose.vue'),
         meta: { title: '试卷与组卷' }
+      },
+      {
+        path: 'paper/manage',
+        name: 'PaperManage',
+        component: () => import('@/views/paper/PaperManage.vue'),
+        meta: { title: '试卷管理' }
+      },
+      {
+        path: 'paper/browse',
+        name: 'PaperBrowse',
+        component: () => import('@/views/paper/PaperBrowse.vue'),
+        meta: { title: '试卷浏览' }
       },
       {
         path: 'tools/file',
@@ -68,6 +116,12 @@ const routes: RouteRecordRaw[] = [
         name: 'Exam',
         component: () => import('@/views/exam/ExamManage.vue'),
         meta: { title: '考试管理' }
+      },
+      {
+        path: 'exam/analytics',
+        name: 'ExamAnalytics',
+        component: () => import('@/views/exam/ExamAnalytics.vue'),
+        meta: { title: '成绩统计' }
       },
       {
         path: 'exam/grading',
@@ -122,8 +176,13 @@ router.beforeEach((to, from, next) => {
     return;
   }
   const role = localStorage.getItem('role');
-  if (to.path.startsWith('/exam/take') && role && role !== 'STUDENT') {
+  if (to.path.startsWith('/exam/take') && role && role !== 'STUDENT' && role !== 'ADMIN') {
     ElMessage.warning('「我的考试」仅学生账号可用，请使用演示账号 student / student123');
+    next('/');
+    return;
+  }
+  if (to.path.startsWith('/system/menu') && role !== 'ADMIN') {
+    ElMessage.warning('仅管理员可访问菜单管理');
     next('/');
     return;
   }

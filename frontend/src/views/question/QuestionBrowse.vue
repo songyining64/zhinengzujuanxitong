@@ -84,7 +84,7 @@
       :data="list"
       stripe
       v-loading="loading"
-      :row-key="row => row.id"
+      :row-key="(row: QuestionRow) => row.id"
       style="margin-top: 8px"
     >
       <el-table-column prop="id" label="ID" width="80" />
@@ -298,7 +298,7 @@ const fetchQuestions = async () => {
   }
   loading.value = true;
   try {
-    const { data } = await fetchQuestionPage({
+    const p = await fetchQuestionPage({
       courseId: selectedCourseId.value,
       knowledgePointId: selectedKpId.value,
       type: query.type || undefined,
@@ -307,7 +307,6 @@ const fetchQuestions = async () => {
       page: page.value,
       size: size.value
     });
-    const p = data as QuestionPage | undefined;
     list.value = p?.records ?? [];
     total.value = p?.total ?? 0;
   } catch {

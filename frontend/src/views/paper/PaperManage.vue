@@ -327,8 +327,7 @@ async function fetchTemplates() {
     templateList.value = [];
     return;
   }
-  const { data } = await fetchPaperTemplates(selectedCourseId.value);
-  templateList.value = data ?? [];
+  templateList.value = await fetchPaperTemplates(selectedCourseId.value);
 }
 
 async function fetchPapers() {
@@ -337,9 +336,9 @@ async function fetchPapers() {
     paperTotal.value = 0;
     return;
   }
-  const { data } = await fetchPaperPage({ courseId: selectedCourseId.value, page: paperPage.value, size: paperSize.value });
-  paperList.value = data?.records ?? [];
-  paperTotal.value = data?.total ?? 0;
+  const page = await fetchPaperPage({ courseId: selectedCourseId.value, page: paperPage.value, size: paperSize.value });
+  paperList.value = page?.records ?? [];
+  paperTotal.value = page?.total ?? 0;
 }
 
 async function fetchLogs() {
@@ -347,8 +346,8 @@ async function fetchLogs() {
     logList.value = [];
     return;
   }
-  const { data } = await fetchPaperGenerationLogs({ courseId: selectedCourseId.value, page: 1, size: 20 });
-  logList.value = data?.records ?? [];
+  const page = await fetchPaperGenerationLogs({ courseId: selectedCourseId.value, page: 1, size: 20 });
+  logList.value = page?.records ?? [];
 }
 
 async function onCourseChange() {
@@ -499,8 +498,7 @@ async function onDeleteTemplate(row: PaperTemplate) {
 }
 
 async function openPaperDetail(row: PaperRow) {
-  const { data } = await fetchPaperDetail(row.id);
-  paperDetail.value = data ?? null;
+  paperDetail.value = await fetchPaperDetail(row.id);
   paperDetailVisible.value = true;
 }
 
