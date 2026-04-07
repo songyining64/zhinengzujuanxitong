@@ -1,7 +1,7 @@
 import axios, { type AxiosResponse } from 'axios';
 import { ElMessage } from 'element-plus';
 import router from '@/router';
-import { useUserStore } from '@/store/user';
+import { FRONTEND_DEMO_TOKEN, isDemoSession } from '@/constants/auth';
 
 /** 统一封装：Bearer、业务 code、401 跳转 */
 const http = axios.create({
@@ -10,9 +10,9 @@ const http = axios.create({
 });
 
 http.interceptors.request.use((config) => {
-  /** 与 Pinia 写入同源，避免在 Pinia 初始化前调用 useUserStore */
   const token = localStorage.getItem('access_token');
-  if (token) {
+  /** 演示令牌不发给后端，避免无效 JWT 触发统一 401 踢回登录 */
+  if (token && token !== FRONTEND_DEMO_TOKEN) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -35,15 +35,12 @@ http.interceptors.response.use(
     const body = err.response?.data as { msg?: string; message?: string } | undefined;
     const msg = body?.msg || body?.message;
     if (status === 401) {
-      try {
-        useUserStore().clear();
-      } catch {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('username');
-        localStorage.removeItem('role');
-        localStorage.removeItem('realName');
-        localStorage.removeItem('permissions');
+      if (isDemoSession()) {
+        return Promise.reject(err);
       }
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('role');
       ElMessage.warning('登录已过期，请重新登录');
       router.push('/login');
     } else if (msg) {

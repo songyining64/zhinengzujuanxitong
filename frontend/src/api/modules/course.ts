@@ -1,58 +1,38 @@
-import http from '@/api/http';
+import http from '../http';
+import type { Course } from '@/types/models';
 
-export interface Course {
-  id: number;
-  teacherId: number;
-  name: string;
-  description?: string;
-  code?: string;
-  status?: number;
+export function fetchCoursePage(page = 1, size = 20, keyword?: string) {
+  return http.get<{ records: Course[]; total: number }>('/api/course', {
+    params: { page, size, keyword }
+  });
 }
 
-export interface PageResult<T> {
-  records: T[];
-  total: number;
-  current: number;
-  size: number;
+export function getCourse(id: number) {
+  return http.get<Course>(`/api/course/${id}`);
 }
 
-export async function fetchCoursePage(params: { page?: number; size?: number; keyword?: string }) {
-  const { data } = await http.get<PageResult<Course>>('/api/course', { params });
-  return data;
+export function createCourse(data: { name: string; description?: string; code?: string }) {
+  return http.post<Course>('/api/course', data);
 }
 
-export async function createCourse(body: {
-  name: string;
-  description?: string;
-  code?: string;
-  teacherId?: number;
-}) {
-  const { data } = await http.post<Course>('/api/course', body);
-  return data;
+export function updateCourse(id: number, data: { name?: string; description?: string; code?: string; status?: number }) {
+  return http.put<Course>(`/api/course/${id}`, data);
 }
 
-export async function updateCourse(id: number, body: Partial<Course>) {
-  const { data } = await http.put<Course>(`/api/course/${id}`, body);
-  return data;
-}
-
-export interface CourseStudentRow {
-  id: number;
+export interface CourseStudentVO {
   studentId: number;
-  username?: string;
+  username: string;
   realName?: string;
-  status: number;
 }
 
-export async function listCourseStudents(courseId: number) {
-  const { data } = await http.get<CourseStudentRow[]>(`/api/course/${courseId}/students`);
-  return data;
+export function fetchCourseStudents(courseId: number) {
+  return http.get<CourseStudentVO[]>(`/api/course/${courseId}/students`);
 }
 
-export async function addCourseStudent(courseId: number, studentId: number) {
-  await http.post(`/api/course/${courseId}/students/${studentId}`);
+export function addCourseStudent(courseId: number, studentId: number) {
+  return http.post(`/api/course/${courseId}/students/${studentId}`);
 }
 
-export async function removeCourseStudent(courseId: number, studentId: number) {
-  await http.delete(`/api/course/${courseId}/students/${studentId}`);
+export function removeCourseStudent(courseId: number, studentId: number) {
+  return http.delete(`/api/course/${courseId}/students/${studentId}`);
 }

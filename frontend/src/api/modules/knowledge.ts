@@ -1,38 +1,23 @@
-import http from '@/api/http';
+import http from '../http';
+import type { KnowledgePoint } from '@/types/models';
 
-export interface KnowledgePoint {
-  id: number;
-  courseId: number;
-  parentId?: number | null;
-  name: string;
-  sortOrder: number;
+export function fetchKnowledgeList(courseId: number) {
+  return http.get<KnowledgePoint[]>('/api/knowledge-point', { params: { courseId } });
 }
 
-export async function listKnowledge(courseId: number) {
-  const { data } = await http.get<KnowledgePoint[]>('/api/knowledge-point', {
-    params: { courseId }
-  });
-  return data;
-}
-
-export async function createKnowledge(body: {
+export function createKnowledge(data: {
   courseId: number;
   parentId?: number | null;
   name: string;
   sortOrder?: number;
 }) {
-  const { data } = await http.post<KnowledgePoint>('/api/knowledge-point', body);
-  return data;
+  return http.post<KnowledgePoint>('/api/knowledge-point', data);
 }
 
-export async function updateKnowledge(
-  id: number,
-  body: { parentId?: number | null; name?: string; sortOrder?: number }
-) {
-  const { data } = await http.put<KnowledgePoint>(`/api/knowledge-point/${id}`, body);
-  return data;
+export function updateKnowledge(id: number, data: { name?: string; parentId?: number | null; sortOrder?: number }) {
+  return http.put<KnowledgePoint>(`/api/knowledge-point/${id}`, data);
 }
 
-export async function deleteKnowledge(id: number) {
-  await http.delete(`/api/knowledge-point/${id}`);
+export function deleteKnowledge(id: number) {
+  return http.delete(`/api/knowledge-point/${id}`);
 }

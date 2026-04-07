@@ -1,79 +1,52 @@
 <template>
-  <div class="auth-container">
-    <!-- 参照 WebStudy：全屏背景 + 遮罩；无素材图时用渐变替代港口大图 -->
-    <div class="login-bg" aria-hidden="true" />
-    <div class="bg-overlay" />
-
-    <div class="form-wrapper">
-      <div class="logo-container">
-        <div class="logo-large">
-          <span>EX</span>
+  <div class="login-page">
+    <div class="login-bg" />
+    <el-card class="login-card" shadow="always">
+      <div class="brand">
+        <div class="logo-mark">卷</div>
+        <div>
+          <h1 class="title">课程智能组卷系统</h1>
+          <p class="subtitle">统一认证后进入教学工作台</p>
         </div>
-        <h2>课程智能组卷系统</h2>
-        <p class="subtitle">题库 · 组卷 · 考试 · 成绩</p>
       </div>
 
-      <el-form class="auth-form" @submit.prevent="onSubmit">
-        <div class="form-group">
-          <div class="input-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-              />
-            </svg>
-          </div>
-          <el-input
-            v-model="form.username"
-            size="large"
-            placeholder="用户名"
-            class="form-input-el"
-            autocomplete="username"
-          />
-        </div>
-        <div class="form-group">
-          <div class="input-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zm-6 9a2 2 0 110-4 2 2 0 010 4zM9 8V6a3 3 0 016 0v2H9z"
-              />
-            </svg>
-          </div>
-          <el-input
-            v-model="form.password"
-            size="large"
-            type="password"
-            placeholder="密码"
-            show-password
-            class="form-input-el"
-            autocomplete="current-password"
-          />
-        </div>
-
-        <p class="demo-hint">演示：admin / admin123 · teacher / teacher123 · student / student123</p>
-
-        <div class="footer-links">
-          <router-link to="/register">没有账号？注册学生账号</router-link>
-        </div>
-
-        <button type="submit" class="submit-btn" :disabled="loading">
-          <span>{{ loading ? '登录中…' : '登 录' }}</span>
-        </button>
+      <el-form :model="form" size="large" @submit.prevent="onSubmit">
+        <el-form-item>
+          <el-input v-model="form.username" placeholder="用户名" clearable />
+        </el-form-item>
+        <el-form-item>
+          <el-input v-model="form.password" placeholder="密码" show-password clearable />
+        </el-form-item>
+        <el-form-item class="btn-row">
+          <el-button type="primary" class="btn-main" :loading="loading" native-type="submit" @click="onSubmit">
+            登录
+          </el-button>
+        </el-form-item>
       </el-form>
-    </div>
+
+      <div v-if="showDemo" class="demo-block">
+        <el-divider>本地开发</el-divider>
+        <p class="demo-tip">未启动后端（8080）时，正式登录会失败。可先用演示模式查看界面。</p>
+        <el-button class="btn-demo" plain type="primary" @click="enterDemo">演示模式进入（不连后端）</el-button>
+      </div>
+
+      <p class="foot-hint">生产环境请使用管理员分配的账号；API 前缀 <code>/api</code> 由开发代理至后端。</p>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { computed, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import http from '@/api/http';
-import { useUserStore } from '@/store/user';
+import { FRONTEND_DEMO_TOKEN } from '@/constants/auth';
 
 const router = useRouter();
-const route = useRoute();
-const userStore = useUserStore();
 const loading = ref(false);
+
+/** 仅开发构建显示演示入口，生产打包不展示 */
+const showDemo = computed(() => import.meta.env.DEV);
 
 const form = reactive({
   username: '',
@@ -85,7 +58,6 @@ interface LoginData {
   username: string;
   realName?: string;
   role: string;
-  permissions?: string[];
 }
 
 const onSubmit = async () => {
@@ -96,197 +68,131 @@ const onSubmit = async () => {
   loading.value = true;
   try {
     const { data } = await http.post<LoginData>('/api/auth/login', form);
-    userStore.setSession({
-      token: data.token,
-      username: data.username,
-      role: data.role,
-      realName: data.realName,
-      permissions: data.permissions
-    });
+    localStorage.setItem('access_token', data.token);
+    localStorage.setItem('username', data.username);
+    localStorage.setItem('role', data.role);
     ElMessage.success('登录成功');
     router.push('/');
   } catch {
-    /* http 拦截器 */
+    /* 已由拦截器提示；常见原因：未启动后端或账号错误 */
   } finally {
     loading.value = false;
   }
 };
 
-onMounted(() => {
-  const u = route.query.u as string | undefined;
-  if (u) form.username = u;
-  if (route.query.registered === '1') {
-    ElMessage.success('注册成功，请登录');
-  }
-});
+function enterDemo() {
+  localStorage.setItem('access_token', FRONTEND_DEMO_TOKEN);
+  localStorage.setItem('username', '演示用户');
+  localStorage.setItem('role', 'TEACHER');
+  ElMessage.success('已进入演示模式（列表数据需后端或为空）');
+  router.push('/');
+}
 </script>
 
 <style scoped>
-.login-bg {
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  background: linear-gradient(135deg, #1a5276 0%, #2980b9 35%, #5dade2 70%, #aed6f1 100%);
-  background-size: 200% 200%;
-  animation: bgShift 18s ease infinite;
-}
-
-@keyframes bgShift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-.form-wrapper {
-  background: rgba(255, 255, 255, 0.94);
-  padding: 40px 40px 36px;
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  width: 100%;
-  max-width: 440px;
-  animation: slideUp 0.55s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-}
-
-.logo-container {
-  text-align: center;
-  margin-bottom: 28px;
-}
-
-.logo-large {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+.login-page {
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: 1px;
-  box-shadow: 0 8px 24px rgba(52, 152, 219, 0.35);
-}
-
-.logo-container h2 {
-  color: var(--text-dark);
-  font-size: 24px;
-  margin: 0;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.subtitle {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: #7f8c8d;
-}
-
-.auth-form {
-  width: 100%;
-}
-
-.form-group {
+  padding: 24px;
   position: relative;
-  margin-bottom: 20px;
+  overflow: hidden;
 }
 
-.input-icon {
+.login-bg {
   position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 20px;
-  width: 20px;
-  color: #8c9aaf;
-  z-index: 2;
+  inset: 0;
+  background: linear-gradient(125deg, #1d39c4 0%, #531dab 45%, #391085 100%);
+  z-index: 0;
+}
+
+.login-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255, 255, 255, 0.12), transparent 55%);
   pointer-events: none;
 }
 
-.form-input-el :deep(.el-input__wrapper) {
-  padding-left: 48px;
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
   border-radius: 12px;
-  min-height: 52px;
-  box-shadow: none;
-  border: 2px solid #e1e5eb;
-  background-color: #f8f9fc;
-  transition: all 0.25s ease;
+  border: none;
 }
 
-.form-input-el :deep(.el-input__wrapper.is-focus) {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
-  background-color: #fff;
+.brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 28px;
 }
 
-.demo-hint {
+.logo-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #409eff, #597ef7);
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #303133;
+  line-height: 1.3;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #909399;
+}
+
+.btn-row {
+  margin-bottom: 0;
+}
+
+.btn-main {
+  width: 100%;
+}
+
+.demo-block {
+  margin-top: 8px;
+}
+
+.demo-tip {
   font-size: 12px;
-  color: #7f8c8d;
+  color: #909399;
   line-height: 1.5;
   margin: 0 0 12px;
-  text-align: center;
 }
 
-.footer-links {
-  text-align: center;
-  margin-bottom: 18px;
-  font-size: 14px;
-}
-
-.footer-links a {
-  color: var(--primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.footer-links a:hover {
-  text-decoration: underline;
-}
-
-.submit-btn {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 15px;
+.btn-demo {
   width: 100%;
-  font-size: 17px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
 }
 
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+.foot-hint {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: #c0c4cc;
+  line-height: 1.5;
 }
 
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(28px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 480px) {
-  .form-wrapper {
-    padding: 28px 20px;
-    margin: 12px;
-  }
+.foot-hint code {
+  font-size: 11px;
+  padding: 1px 6px;
+  background: #f4f4f5;
+  border-radius: 4px;
 }
 </style>

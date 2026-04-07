@@ -1,79 +1,84 @@
 <template>
-  <el-card>
-    <template #header>错题本</template>
-    <div class="bar">
-      <el-select v-model="courseId" placeholder="课程" filterable style="width: 260px" @change="load">
-        <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
-      </el-select>
-      <el-button type="primary" :disabled="!courseId" @click="load">刷新</el-button>
-    </div>
-    <el-table v-loading="loading" :data="rows" stripe>
-      <el-table-column prop="questionId" label="试题ID" width="88" />
-      <el-table-column prop="wrongCount" label="错次" width="72" />
-      <el-table-column prop="lastWrongAt" label="最近错题时间" min-width="160" />
-    </el-table>
-    <el-pagination
-      v-model:current-page="page"
-      v-model:page-size="size"
-      :total="total"
-      layout="total, prev, pager, next"
-      class="pager"
-      @current-change="load"
-    />
+  <el-card shadow="never">
+    <template #header>
+      <div class="head">
+        <span>错题本</span>
+        <CoursePicker />
+      </div>
+    </template>
+
+    <el-alert v-if="!courseId" type="info" show-icon :closable="false" title="请先选择课程" />
+
+    <template v-else>
+      <el-table v-loading="loading" :data="list" stripe>
+        <el-table-column prop="questionId" label="题目ID" width="88" />
+        <el-table-column prop="type" label="题型" width="88" />
+        <el-table-column prop="wrongCount" label="错次" width="72" />
+        <el-table-column prop="lastWrongAt" label="最近错误" width="160" />
+        <el-table-column prop="stem" label="题干" min-width="240" show-overflow-tooltip />
+      </el-table>
+      <div class="pager">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="size"
+          layout="total, prev, pager, next"
+          :total="total"
+          @current-change="load"
+        />
+      </div>
+    </template>
   </el-card>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import http from '@/api/http';
-import { fetchCoursePage, type CourseRow } from '@/api/course';
-import { getLastCourseId, setLastCourseId } from '@/composables/useLastCourseId';
+import { ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
+import CoursePicker from '@/components/CoursePicker.vue';
+import { useCourseContextStore } from '@/store/courseContext';
+import { fetchWrongBookPage } from '@/api/modules/wrongbook';
+import type { WrongBookRow } from '@/types/models';
 
-const courses = ref<CourseRow[]>([]);
-const courseId = ref<number | null>(getLastCourseId());
+const store = useCourseContextStore();
+const { courseId } = storeToRefs(store);
+
 const loading = ref(false);
-const rows = ref<Record<string, unknown>[]>([]);
-const total = ref(0);
+const list = ref<WrongBookRow[]>([]);
 const page = ref(1);
-const size = ref(10);
-
-async function loadCourses() {
-  const { data } = await fetchCoursePage({ page: 1, size: 200 });
-  courses.value = data?.records ?? [];
-  if (!courseId.value && courses.value.length) {
-    courseId.value = courses.value[0].id;
-  }
-}
+const size = ref(15);
+const total = ref(0);
 
 async function load() {
   if (!courseId.value) return;
-  setLastCourseId(courseId.value);
   loading.value = true;
   try {
-    const { data } = await http.get('/api/wrong-book', {
-      params: { courseId: courseId.value, page: page.value, size: size.value }
-    });
-    rows.value = (data as { records?: Record<string, unknown>[] })?.records ?? [];
-    total.value = (data as { total?: number })?.total ?? 0;
+    const { data } = await fetchWrongBookPage(courseId.value, page.value, size.value);
+    list.value = data?.records ?? [];
+    total.value = data?.total ?? 0;
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(async () => {
-  await loadCourses();
-  await load();
-});
+watch(courseId, () => {
+  page.value = 1;
+  list.value = [];
+  total.value = 0;
+  if (courseId.value) void load();
+}, { immediate: true });
 </script>
 
 <style scoped>
-.bar {
+.head {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
+
 .pager {
   margin-top: 12px;
+  display: flex;
   justify-content: flex-end;
 }
 </style>
