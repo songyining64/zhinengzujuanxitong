@@ -19,6 +19,7 @@ import java.util.Set;
 
 /**
  * 初始化菜单与角色-菜单绑定，使 sys_menu.perms 与接口 {@code hasAuthority} 一致。
+ * 合并为单一路径，避免同一 path 出现多条菜单导致前端高亮异常。
  */
 @Component
 @RequiredArgsConstructor
@@ -76,26 +77,38 @@ public class MenuAndPermissionSeed {
             link(RoleEnum.ADMIN.name(), m.getId());
         }
         for (SysMenu m : all) {
-            String p = m.getPerms();
-            if (p != null && TEACHER_PERMS.contains(p)) {
+            if (menuVisibleForRole(m, TEACHER_PERMS)) {
                 link(RoleEnum.TEACHER.name(), m.getId());
             }
         }
         for (SysMenu m : all) {
-            String p = m.getPerms();
-            if (p != null && STUDENT_PERMS.contains(p)) {
+            if (menuVisibleForRole(m, STUDENT_PERMS)) {
                 link(RoleEnum.STUDENT.name(), m.getId());
             }
         }
     }
 
-    private SysMenu menu(String name, String path, String perms) {
+    private boolean menuVisibleForRole(SysMenu m, Set<String> granted) {
+        String p = m.getPerms();
+        if (p == null || p.isBlank()) {
+            return false;
+        }
+        for (String part : p.split(",")) {
+            String t = part.trim();
+            if (!t.isEmpty() && granted.contains(t)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private SysMenu menu(String name, String path, String perms, int sortOrder) {
         SysMenu m = new SysMenu();
         m.setParentId(null);
         m.setName(name);
         m.setPath(path);
         m.setIcon(null);
-        m.setSortOrder(0);
+        m.setSortOrder(sortOrder);
         m.setPerms(perms);
         m.setCreateTime(LocalDateTime.now());
         return m;
