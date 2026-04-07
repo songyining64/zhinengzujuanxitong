@@ -13,6 +13,26 @@
       </el-form-item>
     </el-form>
 
+    <div class="wrong-wrap">
+      <div class="wrong-head">错题分布（卷内题号 · 题型）</div>
+      <p v-if="!examId" class="wrong-empty muted">请先填写考试 ID。</p>
+      <p v-else-if="!loadFinished" class="wrong-empty muted">点击「加载」后，将根据本场答题统计展示错题题号与题型。</p>
+      <template v-else>
+        <div v-if="usingDemoData" class="demo-hint">
+          <el-tag type="warning" size="small" effect="light">演示数据</el-tag>
+          <span>后端不可用时，以下为前端示例，便于查看版面效果。</span>
+        </div>
+        <el-table v-if="wrongQuestionRows.length" :data="wrongQuestionRows" size="small" stripe border class="wrong-table">
+          <el-table-column prop="paperOrder" label="错题题号" width="120" align="center" />
+          <el-table-column label="错题类型" min-width="160">
+            <template #default="{ row }">{{ typeLabel(row.type) }}</template>
+          </el-table-column>
+        </el-table>
+        <p v-else-if="qStats.length" class="wrong-empty">本场逐题正确率均为 100%，暂无错题明细。</p>
+        <p v-else class="wrong-empty muted">暂无逐题数据（可能尚无人交卷或接口未返回）。请确认后端已启动并成功加载。</p>
+      </template>
+    </div>
+
     <template v-if="overview">
       <el-row :gutter="16" class="sum-cards">
         <el-col :xs="12" :sm="6">
@@ -90,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import * as echarts from 'echarts';
 import {
   fetchExamOverview,
@@ -98,10 +118,15 @@ import {
   fetchQuestionStats,
   fetchKnowledgePointStats
 } from '@/api/modules/analytics';
+import { isDemoSession } from '@/constants/auth';
 import type { ExamKnowledgeStatDTO, ExamOverviewDTO, ExamQuestionStatDTO, StudentRankDTO } from '@/types/models';
 
 const examId = ref<number | undefined>(undefined);
 const loading = ref(false);
+/** 是否已点击过「加载」（避免错题区依赖 overview，否则接口失败时整块不显示） */
+const loadFinished = ref(false);
+/** 是否为前端注入的演示统计 */
+const usingDemoData = ref(false);
 const tab = ref('rank');
 
 const overview = ref<ExamOverviewDTO | null>(null);
@@ -110,6 +135,63 @@ const rankPage = ref(1);
 const rankTotal = ref(0);
 const qStats = ref<ExamQuestionStatDTO[]>([]);
 const kpStats = ref<ExamKnowledgeStatDTO[]>([]);
+
+/** 有作答且正确率未满 100% 视为错题，题号按试卷中题目顺序 */
+const wrongQuestionRows = computed(() => {
+  const rows: (ExamQuestionStatDTO & { paperOrder: number })[] = [];
+  qStats.value.forEach((q, idx) => {
+    if (q.attemptCount <= 0) return;
+    const rate = q.correctRate != null ? Number(q.correctRate) : 0;
+    if (rate < 1) {
+      rows.push({ ...q, paperOrder: idx + 1 });
+    }
+  });
+  return rows;
+});
+
+function typeLabel(type: string) {
+  const m: Record<string, string> = {
+    SINGLE: '单选',
+    MULTIPLE: '多选',
+    TRUE_FALSE: '判断',
+    FILL: '填空',
+    SHORT: '简答'
+  };
+  return m[type] || type || '—';
+}
+
+/** 无后端或请求失败时，演示登录下填充示例，保证错题表格可见 */
+function applyDemoAnalytics(eid: number) {
+  usingDemoData.value = true;
+  overview.value = {
+    examId: eid,
+    submittedCount: 12,
+    totalRecords: 15,
+    avgScore: 78.5,
+    maxScore: 98,
+    minScore: 45,
+    passScore: 60,
+    scorePublished: true,
+    passCount: 9
+  };
+  ranks.value = [
+    { rank: 1, studentId: 1, username: 'stu_a', realName: '张三', totalScore: 92, passed: true },
+    { rank: 2, studentId: 2, username: 'stu_b', realName: '李四', totalScore: 81, passed: true },
+    { rank: 3, studentId: 3, username: 'stu_c', realName: '王五', totalScore: 58, passed: false }
+  ];
+  rankTotal.value = 3;
+  qStats.value = [
+    { questionId: 91001, type: 'SINGLE', attemptCount: 12, correctCount: 12, correctRate: 1 },
+    { questionId: 91002, type: 'MULTIPLE', attemptCount: 12, correctCount: 8, correctRate: 0.667 },
+    { questionId: 91003, type: 'TRUE_FALSE', attemptCount: 11, correctCount: 7, correctRate: 0.636 },
+    { questionId: 91004, type: 'FILL', attemptCount: 10, correctCount: 6, correctRate: 0.6 },
+    { questionId: 91005, type: 'SHORT', attemptCount: 9, correctCount: 9, correctRate: 1 }
+  ];
+  kpStats.value = [
+    { knowledgePointId: 1, knowledgePointName: '函数与方程（示例）', questionCount: 3, avgCorrectRate: 0.72 },
+    { knowledgePointId: 2, knowledgePointName: '立体几何（示例）', questionCount: 2, avgCorrectRate: 0.85 }
+  ];
+}
 
 const chartRankRef = ref<HTMLDivElement | null>(null);
 const chartQRef = ref<HTMLDivElement | null>(null);
@@ -223,10 +305,17 @@ watch(kpStats, async () => {
 async function loadAll() {
   if (!examId.value) {
     overview.value = null;
+    qStats.value = [];
+    ranks.value = [];
+    kpStats.value = [];
+    rankTotal.value = 0;
+    loadFinished.value = false;
+    usingDemoData.value = false;
     disposeCharts();
     return;
   }
   loading.value = true;
+  usingDemoData.value = false;
   try {
     disposeCharts();
     const { data: ov } = await fetchExamOverview(examId.value);
@@ -241,7 +330,22 @@ async function loadAll() {
     renderRankChart();
     renderQChart();
     renderKpChart();
+  } catch {
+    overview.value = null;
+    qStats.value = [];
+    ranks.value = [];
+    kpStats.value = [];
+    rankTotal.value = 0;
+    disposeCharts();
+    if (isDemoSession()) {
+      applyDemoAnalytics(examId.value);
+      await nextTick();
+      renderRankChart();
+      renderQChart();
+      renderKpChart();
+    }
   } finally {
+    loadFinished.value = true;
     loading.value = false;
   }
 }
@@ -262,6 +366,45 @@ onBeforeUnmount(() => {
 <style scoped>
 .bar {
   margin-bottom: 16px;
+}
+
+.wrong-wrap {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 4px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+.wrong-head {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 10px;
+}
+
+.wrong-table {
+  background: #fff;
+}
+
+.wrong-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.wrong-empty.muted {
+  color: var(--el-text-color-placeholder);
+}
+
+.demo-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .sum-cards {

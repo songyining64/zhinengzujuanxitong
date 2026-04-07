@@ -13,13 +13,13 @@
             <p class="hero-lead">{{ roleHint }}</p>
             <div class="quick-actions">
               <template v-if="isStudent">
-                <el-button type="primary" size="large" round @click="$router.push('/exam/take')">
-                  <el-icon class="btn-ic"><Calendar /></el-icon>
-                  我的考试
-                </el-button>
-                <el-button size="large" round @click="$router.push('/wrong-book')">
+                <el-button type="primary" size="large" round @click="$router.push('/wrong-book')">
                   <el-icon class="btn-ic"><DocumentCopy /></el-icon>
                   错题本
+                </el-button>
+                <el-button size="large" round @click="$router.push('/exam/analytics')">
+                  <el-icon class="btn-ic"><TrendCharts /></el-icon>
+                  成绩分析
                 </el-button>
               </template>
               <template v-else>
@@ -155,7 +155,7 @@ const isStudent = computed(() => role.value === 'STUDENT');
 const demoMode = computed(() => isDemoSession());
 
 const roleHint = computed(() => {
-  if (isStudent.value) return '参加在线考试、查看成绩与错题；答题过程支持自动保存草稿。';
+  if (isStudent.value) return '浏览成绩分析、整理错题；可在右侧日历查看本月安排。';
   if (role.value === 'ADMIN')
     return '管理系统用户、审核入库题目，并查看全平台教学与考试数据。';
   return '维护课程与题库、配置智能组卷规则、发布考试并查看学情分析。';
@@ -190,15 +190,6 @@ const statCards = computed<StatItem[]>(() => {
 
   if (isStudent.value) {
     return [
-      {
-        key: 'ex',
-        label: '待参加考试',
-        value: '2',
-        sub: suffix,
-        to: '/exam/take',
-        tone: 'blue',
-        icon: Calendar
-      },
       {
         key: 'wb',
         label: '错题收录',

@@ -9,7 +9,7 @@
           <p v-if="showRank">
             排名：第 {{ summary.rank }} / {{ summary.rankTotal }} 名
           </p>
-          <el-button type="primary" @click="$router.push('/exam/take')">返回考试列表</el-button>
+          <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
         </template>
       </el-result>
     </template>

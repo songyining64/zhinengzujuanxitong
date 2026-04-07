@@ -68,11 +68,28 @@ defineExpose({ load });
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  line-height: 1;
 }
 
 .label {
+  flex-shrink: 0;
   font-size: 13px;
   color: #606266;
+  white-space: nowrap;
+}
+
+.course-picker :deep(.el-select) {
+  vertical-align: middle;
+}
+
+.course-picker :deep(.el-button) {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .course-picker {
+    flex-wrap: wrap;
+  }
 }
 </style>

@@ -460,20 +460,42 @@ onMounted(async () => {
   overflow: auto;
 }
 
-.kp-tree-node {
-  max-width: 300px;
+/* 自定义节点含多行说明时，需取消 el-tree 默认单行固定高度，否则会层层叠在一起 */
+.kp-tree :deep(.el-tree-node__content) {
+  height: auto;
+  min-height: 32px;
+  align-items: flex-start;
+  padding: 6px 0;
+  line-height: 1.45;
   white-space: normal;
 }
 
+.kp-tree :deep(.el-tree-node__expand-icon) {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.kp-tree-node {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  padding-right: 8px;
+  white-space: normal;
+  word-break: break-word;
+}
+
 .kp-tree-name {
+  display: block;
   font-weight: 500;
+  color: var(--el-text-color-primary);
 }
 
 .kp-tree-content {
-  margin: 4px 0 0;
+  display: block;
+  margin: 6px 0 0;
   font-size: 12px;
   color: #909399;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .muted {

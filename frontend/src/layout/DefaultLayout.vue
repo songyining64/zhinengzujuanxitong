@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout-root" direction="vertical">
-    <el-header class="top-nav" height="56px">
+    <el-header class="top-nav">
       <div class="top-left">
         <el-button class="mob-only" text @click="drawerMenu = true">☰</el-button>
         <div class="brand">
@@ -65,7 +65,6 @@
             <template #title>考试与统计</template>
             <el-menu-item index="/exam/teacher">考试管理</el-menu-item>
             <el-menu-item index="/exam/analytics">成绩分析</el-menu-item>
-            <el-menu-item index="/exam/take">我的考试</el-menu-item>
             <el-menu-item index="/wrong-book">错题本</el-menu-item>
           </el-sub-menu>
           <el-sub-menu index="biz-sys">
@@ -96,7 +95,6 @@
         <el-menu-item index="/course">课程管理</el-menu-item>
         <el-menu-item index="/question">题库</el-menu-item>
         <el-menu-item index="/paper/compose/auto">自动组卷</el-menu-item>
-        <el-menu-item index="/exam/take">我的考试</el-menu-item>
       </el-menu>
     </el-drawer>
   </el-container>
@@ -160,12 +158,15 @@ const logout = () => {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
+  height: auto !important;
+  min-height: 56px;
+  box-sizing: border-box;
   background: #fff;
   border-bottom: 1px solid #e4e7ed;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.06);
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   z-index: 100;
+  flex-wrap: nowrap;
 }
 
 .top-left {
@@ -173,6 +174,8 @@ const logout = () => {
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
 }
 
 .brand {
@@ -199,22 +202,49 @@ const logout = () => {
 .top-right {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 14px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .autosave-tip {
   font-size: 12px;
+  line-height: 1.4;
   color: #909399;
+  white-space: nowrap;
 }
 
-.top-course :deep(.label) {
-  display: none;
+.top-course {
+  display: flex;
+  align-items: center;
 }
 
-@media (min-width: 900px) {
-  .top-course :deep(.label) {
-    display: inline;
+.top-course :deep(.course-picker) {
+  align-items: center;
+}
+
+@media (max-width: 1100px) {
+  .autosave-tip.desk-only {
+    display: none !important;
+  }
+
+  .top-nav {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .top-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-nav {
+    align-items: flex-start;
   }
 }
 

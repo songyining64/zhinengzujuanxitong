@@ -94,12 +94,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '成绩分析' }
       },
       {
-        path: 'exam/take',
-        name: 'ExamStudentList',
-        component: () => import('@/views/exam/ExamStudentList.vue'),
-        meta: { title: '我的考试' }
-      },
-      {
         path: 'exam/take/:recordId',
         name: 'ExamTake',
         component: () => import('@/views/exam/ExamTake.vue'),
