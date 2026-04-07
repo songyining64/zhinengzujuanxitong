@@ -5,8 +5,11 @@
       当前角色：<el-tag size="small">{{ role }}</el-tag>
     </p>
     <el-divider />
-    <p>
-      <el-button type="primary" @click="$router.push('/exam/take')">进入「我的考试」</el-button>
+    <p class="actions">
+      <el-button type="primary" @click="$router.push('/exam/take')">我的考试</el-button>
+      <el-button @click="$router.push('/course/browse')">课程浏览</el-button>
+      <el-button @click="$router.push('/question/browse')">题库浏览</el-button>
+      <el-button @click="$router.push('/paper/browse')">试卷浏览</el-button>
     </p>
     <el-divider />
     <ul class="tips">
@@ -25,6 +28,11 @@ const role = computed(() => localStorage.getItem('role') || '');
 </script>
 
 <style scoped>
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .tips {
   margin: 0;
   padding-left: 20px;

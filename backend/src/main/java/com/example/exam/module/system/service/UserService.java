@@ -9,6 +9,9 @@ public interface UserService {
 
     Page<User> pageUsers(String keyword, long current, long size);
 
+    /** 仅启用状态的学生账号，供选课等场景检索 */
+    Page<User> pageStudents(String keyword, long current, long size);
+
     User saveUser(User user);
 }
 

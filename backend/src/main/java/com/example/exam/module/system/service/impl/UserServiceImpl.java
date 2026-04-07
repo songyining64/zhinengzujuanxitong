@@ -2,6 +2,7 @@ package com.example.exam.module.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.exam.common.enums.RoleEnum;
 import com.example.exam.module.system.entity.User;
 import com.example.exam.module.system.mapper.UserMapper;
 import com.example.exam.module.system.service.UserService;
@@ -32,6 +33,19 @@ public class UserServiceImpl implements UserService {
         }
         Page<User> page = new Page<>(current, size);
         userMapper.selectPage(page, wrapper);
+        return page;
+    }
+
+    @Override
+    public Page<User> pageStudents(String keyword, long current, long size) {
+        LambdaQueryWrapper<User> w = new LambdaQueryWrapper<User>()
+                .eq(User::getRole, RoleEnum.STUDENT.name())
+                .eq(User::getStatus, 1);
+        if (keyword != null && !keyword.isBlank()) {
+            w.and(q -> q.like(User::getUsername, keyword).or().like(User::getRealName, keyword));
+        }
+        Page<User> page = new Page<>(current, size);
+        userMapper.selectPage(page, w.orderByAsc(User::getId));
         return page;
     }
 

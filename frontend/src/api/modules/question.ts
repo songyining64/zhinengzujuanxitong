@@ -1,5 +1,21 @@
 import http from '../http'
 
+export function getQuestion(id: number) {
+  return http.get(`/api/question/${id}`)
+}
+
+export function createQuestion(data: Record<string, unknown>) {
+  return http.post('/api/question', data)
+}
+
+export function updateQuestion(id: number, data: Record<string, unknown>) {
+  return http.put(`/api/question/${id}`, data)
+}
+
+export function deleteQuestion(id: number) {
+  return http.delete(`/api/question/${id}`)
+}
+
 /** 分页查询试题（支持 reviewStatus: DRAFT/PENDING/PUBLISHED/REJECTED） */
 export function fetchQuestionPage(params: {
   courseId: number
