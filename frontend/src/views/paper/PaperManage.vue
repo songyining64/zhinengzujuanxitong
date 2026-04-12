@@ -274,6 +274,7 @@ async function saveTemplate() {
     courseId: courseId.value,
     name: tplName.value,
     rules: {
+      courseId: courseId.value,
       countByType,
       scorePerQuestion: autoScore.value,
       randomPool: true,

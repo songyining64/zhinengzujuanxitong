@@ -1,32 +1,12 @@
 import http from '@/api/http';
 import type { PageResult } from './course';
 
-export function fetchPaperPage(params: { courseId: number; page?: number; size?: number }) {
-  return http.get('/api/paper', { params })
-}
-
-export function getPaperDetail(id: number) {
-  return http.get(`/api/paper/${id}`)
-}
-
-export function createPaperManual(data: {
-  courseId: number
-  title: string
-  items: { questionId: number; score: number }[]
-}) {
-  return http.post('/api/paper/manual', data)
-}
-
-export function generatePaperAuto(data: Record<string, unknown>) {
-  return http.post('/api/paper/auto-generate', data)
-}
-
-export function deletePaper(id: number) {
-  return http.delete(`/api/paper/${id}`)
-}
-
-export function fetchPaperTemplates(courseId: number) {
-  return http.get('/api/paper-template', { params: { courseId } })
+export interface Paper {
+  id: number;
+  courseId?: number;
+  title?: string;
+  mode?: string;
+  totalScore?: number;
 }
 
 export interface PaperQuestionLine {
@@ -47,10 +27,10 @@ export interface PaperTemplate {
   id: number;
   courseId: number;
   name: string;
-  rulesJson?: string;
+  /** 后端存为 JSON 字符串，部分场景可能已解析为对象 */
+  rulesJson?: string | Record<string, unknown>;
 }
 
-/** 与 main-zsj-upload 页面一致的类型别名 */
 export type PaperRow = Paper;
 export type PaperDetailVO = PaperDetail;
 
@@ -62,21 +42,12 @@ export interface PaperGenerationLog {
   createTime?: string;
 }
 
-export async function fetchPaperPage(
-  courseId: number,
-  page?: number,
-  size?: number
-): Promise<PageResult<Paper>>;
-export async function fetchPaperPage(params: {
-  courseId: number;
-  page?: number;
-  size?: number;
-}): Promise<PageResult<Paper>>;
-export async function fetchPaperPage(
+/** 分页列表，参数为对象或 (courseId, page, size) */
+export function fetchPaperPage(
   courseIdOrParams: number | { courseId: number; page?: number; size?: number },
   page = 1,
   size = 20
-): Promise<PageResult<Paper>> {
+) {
   let courseId: number;
   let p: number;
   let s: number;
@@ -89,88 +60,91 @@ export async function fetchPaperPage(
     p = page;
     s = size;
   }
-  const { data } = await http.get<PageResult<Paper>>('/api/paper', {
+  return http.get<PageResult<Paper>>('/api/paper', {
     params: { courseId, page: p, size: s }
   });
-  return data;
 }
 
-export async function fetchPaperDetail(id: number) {
-  const { data } = await http.get<PaperDetail>(`/api/paper/${id}`);
-  return data;
+export function getPaperDetail(id: number) {
+  return http.get<PaperDetail>(`/api/paper/${id}`);
 }
 
-export async function createManualPaper(body: {
+export function fetchPaperDetail(id: number) {
+  return getPaperDetail(id);
+}
+
+export function createPaperManual(data: {
   courseId: number;
   title: string;
   items: { questionId: number; score: number }[];
 }) {
-  const { data } = await http.post<Paper>('/api/paper/manual', body);
-  return data;
+  return http.post<Paper>('/api/paper/manual', data);
 }
 
-export async function autoGeneratePaper(body: Record<string, unknown>) {
-  const { data } = await http.post<Paper>('/api/paper/auto-generate', body);
-  return data;
+export const createManualPaper = createPaperManual;
+
+export function generatePaperAuto(data: Record<string, unknown>) {
+  return http.post<Paper>('/api/paper/auto-generate', data);
 }
 
-export async function generateFromTemplate(templateId: number, body: { title: string; randomSeed?: number }) {
-  const { data } = await http.post<Paper>(`/api/paper/from-template/${templateId}`, body);
-  return data;
+export const autoGeneratePaper = generatePaperAuto;
+
+export function generateFromTemplate(templateId: number, body: { title: string; randomSeed?: number }) {
+  return http.post<Paper>(`/api/paper/from-template/${templateId}`, body);
 }
 
 export const generatePaperFromTemplate = generateFromTemplate;
 
-export async function deletePaper(id: number) {
-  await http.delete(`/api/paper/${id}`);
+export function deletePaper(id: number) {
+  return http.delete(`/api/paper/${id}`);
 }
 
-export async function fetchPaperTemplates(courseId: number) {
-  const { data } = await http.get<PaperTemplate[]>('/api/paper-template', { params: { courseId } });
+export function fetchPaperTemplates(courseId: number) {
+  return http.get<PaperTemplate[]>('/api/paper-template', { params: { courseId } });
+}
+
+export async function fetchPaperTemplateById(id: number) {
+  const { data } = await http.get<PaperTemplate>(`/api/paper-template/${id}`);
   return data;
 }
 
-export async function savePaperTemplate(body: {
+export function savePaperTemplate(body: {
   courseId: number;
   name: string;
   rules: Record<string, unknown>;
 }) {
-  const { data } = await http.post<PaperTemplate>('/api/paper-template', {
+  return http.post<PaperTemplate>('/api/paper-template', {
     courseId: body.courseId,
     name: body.name,
     rules: body.rules
   });
-  return data;
 }
 
-export async function fetchGenerationLogs(courseId: number, page = 1, size = 10) {
-  const { data } = await http.get<PageResult<unknown>>('/api/paper/generation-logs', {
+export function fetchGenerationLogs(courseId: number, page = 1, size = 10) {
+  return http.get<PageResult<unknown>>('/api/paper/generation-logs', {
     params: { courseId, page, size }
   });
-  return data;
 }
 
-export async function fetchPaperGenerationLogs(params: {
+export function fetchPaperGenerationLogs(params: {
   courseId: number;
   page?: number;
   size?: number;
-}): Promise<PageResult<PaperGenerationLog>> {
-  const page = await fetchGenerationLogs(params.courseId, params.page ?? 1, params.size ?? 20);
-  return page as PageResult<PaperGenerationLog>;
+}) {
+  return fetchGenerationLogs(params.courseId, params.page ?? 1, params.size ?? 20);
 }
 
-export async function deletePaperTemplate(id: number) {
-  await http.delete(`/api/paper-template/${id}`);
+export function deletePaperTemplate(id: number) {
+  return http.delete(`/api/paper-template/${id}`);
 }
 
-export async function updatePaperTemplate(
+export function updatePaperTemplate(
   id: number,
   body: { courseId: number; name: string; rules: Record<string, unknown> }
 ) {
-  const { data } = await http.put<PaperTemplate>(`/api/paper-template/${id}`, {
+  return http.put<PaperTemplate>(`/api/paper-template/${id}`, {
     courseId: body.courseId,
     name: body.name,
     rules: body.rules
   });
-  return data;
 }
