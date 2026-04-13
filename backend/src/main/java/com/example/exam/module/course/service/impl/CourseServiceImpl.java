@@ -51,7 +51,19 @@ public class CourseServiceImpl implements CourseService {
         if (!RoleEnum.ADMIN.name().equals(u.getRole()) && !RoleEnum.TEACHER.name().equals(u.getRole())) {
             throw new BizException(ErrorCode.FORBIDDEN, "仅教师或管理员可创建课程");
         }
-        Long teacherId = RoleEnum.ADMIN.name().equals(u.getRole()) ? u.getId() : u.getId();
+        Long teacherId;
+        if (RoleEnum.ADMIN.name().equals(u.getRole())) {
+            if (req.getTeacherId() == null) {
+                throw new BizException(ErrorCode.BAD_REQUEST, "管理员创建课程时请指定授课教师 teacherId");
+            }
+            User assignee = userMapper.selectById(req.getTeacherId());
+            if (assignee == null || !RoleEnum.TEACHER.name().equals(assignee.getRole())) {
+                throw new BizException(ErrorCode.BAD_REQUEST, "请选择有效的教师用户作为授课教师");
+            }
+            teacherId = req.getTeacherId();
+        } else {
+            teacherId = u.getId();
+        }
         Course c = new Course();
         c.setTeacherId(teacherId);
         c.setName(req.getName());

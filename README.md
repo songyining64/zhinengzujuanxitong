@@ -1,6 +1,6 @@
 # 课程智能组卷系统
 
-前后端分离的在线组卷、考试、阅卷与成绩分析系统。业务与表结构以本仓库 `backend/doc/schema.sql` 为准。
+前后端分离的在线组卷、考试、阅卷与成绩分析系统。技术栈：Spring Boot 3 + Vue 3（Vite + Element Plus），业务与表结构以本仓库 `backend/doc/schema.sql` 为准。
 
 > **关于参考仓库**  
 > 曾对照 [asdfaf1458/biyesheji2289](https://github.com/asdfaf1458/biyesheji2289)：该仓库与标题不符，内容为招聘类通用模板且未提供可用组卷 SQL，**未并入任何业务代码**，以免破坏现有架构。本文档按本校/本课题要求整理本项目真实说明。
@@ -33,29 +33,36 @@
 
 ---
 
-## 作品安装说明
+## 环境要求
 
-### 环境要求
-
-- JDK 17+
-- Node.js 18+（前端开发/构建）
-- Maven 3.8+
-- MySQL 8.x（推荐）
+- JDK 17+、Maven 3.8+
+- Node.js 18+、npm 9+（前端开发/构建）
+- MySQL 8.x（本地或 Docker，见 `docker-compose.yml`）
 
 ### 数据库
 
-1. 创建数据库 `exam_system`（或按 `application.yml` 配置）。
-2. 执行 `backend/doc/schema.sql` 初始化表结构；若有增量迁移脚本，按 `doc/数据库表设计说明.md` 说明执行。
+1. 创建数据库 `exam_system`（或按 `application.yml` 配置），并执行 `backend/doc/schema.sql` 初始化表结构。
+2. 首次启动后端若 `sys_menu` 为空，会自动写入菜单与角色绑定。
+3. **若数据库已有旧菜单**，可按需执行迁移 SQL：
+   - `doc/migration_menu_grading.sql`（主观题阅卷）
+   - `doc/migration_menu_file_tools.sql`（文件与文本）
+4. 若有其他增量迁移脚本，按 `doc/数据库表设计说明.md` 说明执行。
+
+### 注册与上传
+
+- **学生自助注册**：`POST /api/auth/register`（无需登录），前端路径 `/register`。库表无邮箱字段，采用「用户名 + 可选姓名 + 密码」，固定注册为 **学生** 角色（与 [WebStudy](https://github.com/songyining64/WebStudy) 中注册页思路类似，简化了邮箱验证码流程）。
+- **文件上传**：登录后 `POST /api/file/upload`，工具页路径 `/tools/file`；另支持浏览器端 **纯前端** 导出 `.txt`。
 
 ### 后端
 
 ```bash
 cd backend
 # 配置 src/main/resources/application.yml 中的数据源等
-mvn -q spring-boot:run
+mvn spring-boot:run
 ```
 
-默认 API 端口见 `application.yml`（常见 `8080`）。
+默认 API 端口见 `application.yml`（常见 `8080`）。健康检查：`GET http://localhost:8080/actuator/health`  
+Swagger UI：`http://localhost:8080/swagger-ui.html`（亦见 `doc/API与Swagger.md`、`doc/API接口文档.md`）
 
 ### 前端
 
@@ -65,15 +72,36 @@ npm install
 npm run dev
 ```
 
-构建生产包：`npm run build`。
+开发时 Vite 将 `/api` 代理到 `http://localhost:8080`（见 `vite.config.ts`）。
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 开发服务器 |
+| `npm run build` | 生产构建（已配置 `manualChunks` 分包） |
+| `npm run typecheck` | `vue-tsc --noEmit` 类型检查 |
 
 ### Docker 一键部署
 
 见 [doc/DOCKER.md](doc/DOCKER.md)。
 
-### 接口说明
+### 演示账号
 
-见 [doc/API接口文档.md](doc/API接口文档.md)。
+启动后若不存在会自动创建（见 `ExamApplication`）：
+
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
+| admin | admin123 | 管理员 |
+| teacher | teacher123 | 教师 |
+| student | student123 | 学生 |
+
+### 功能说明（节选）
+
+- **主观题阅卷**：试卷中含「简答题（SHORT）」且学生已交卷、该题尚未得分时，教师/管理员可在「主观题阅卷」页打分；接口 `GET /api/exam/grading/pending-subjective`、`POST /api/exam/grading/subjective`。
+- 权限与菜单说明见 `backend/doc/权限与成绩说明.md`。
+
+### 参考 UI
+
+前端顶栏与登录区曾对齐 [WebStudy](https://github.com/songyining64/WebStudy) 中 `qingbaogang` 项目的风格（浅蓝导航、主色 `#3498db`）。
 
 ---
 

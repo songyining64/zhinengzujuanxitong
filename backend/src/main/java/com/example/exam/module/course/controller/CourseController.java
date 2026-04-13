@@ -7,6 +7,8 @@ import com.example.exam.module.course.dto.CourseStudentVO;
 import com.example.exam.module.course.dto.CourseUpdateRequest;
 import com.example.exam.module.course.entity.Course;
 import com.example.exam.module.course.service.CourseService;
+import com.example.exam.module.system.entity.User;
+import com.example.exam.module.system.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,6 +32,7 @@ import java.util.List;
 public class CourseController {
 
     private final CourseService courseService;
+    private final UserService userService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:manage')")
@@ -77,5 +80,16 @@ public class CourseController {
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:read')")
     public ApiResponse<List<CourseStudentVO>> students(@PathVariable Long courseId) {
         return ApiResponse.success(courseService.listStudents(courseId));
+    }
+
+    /** 检索可加入课程的学生（启用中的学生账号） */
+    @GetMapping("/student-candidates")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('course:manage')")
+    public ApiResponse<Page<User>> studentCandidates(
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "20") long size,
+            @RequestParam(required = false) String keyword
+    ) {
+        return ApiResponse.success(userService.pageStudents(keyword, page, size));
     }
 }

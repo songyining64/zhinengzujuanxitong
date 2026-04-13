@@ -33,19 +33,25 @@ public class ExamApplication {
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    public void initAdminUser() {
-        Page<User> page = userService.pageUsers("admin", 1, 1);
-        boolean exists = page.getRecords().stream().anyMatch(u -> "admin".equals(u.getUsername()));
+    public void initDemoUsers() {
+        ensureUser("admin", "admin123", "系统管理员", RoleEnum.ADMIN);
+        ensureUser("teacher", "teacher123", "演示教师", RoleEnum.TEACHER);
+        ensureUser("student", "student123", "演示学生", RoleEnum.STUDENT);
+    }
+
+    private void ensureUser(String username, String password, String realName, RoleEnum role) {
+        Page<User> page = userService.pageUsers(username, null, 1, 1);
+        boolean exists = page.getRecords().stream().anyMatch(u -> username.equals(u.getUsername()));
         if (!exists) {
-            User admin = new User();
-            admin.setUsername("admin");
-            admin.setPassword("admin123");
-            admin.setRealName("系统管理员");
-            admin.setRole(RoleEnum.ADMIN.name());
-            admin.setStatus(1);
-            admin.setCreateTime(LocalDateTime.now());
-            admin.setUpdateTime(LocalDateTime.now());
-            userService.saveUser(admin);
+            User u = new User();
+            u.setUsername(username);
+            u.setPassword(password);
+            u.setRealName(realName);
+            u.setRole(role.name());
+            u.setStatus(1);
+            u.setCreateTime(LocalDateTime.now());
+            u.setUpdateTime(LocalDateTime.now());
+            userService.saveUser(u);
         }
     }
 }
