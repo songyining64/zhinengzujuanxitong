@@ -86,8 +86,9 @@
         <el-table :data="templates" size="small">
           <el-table-column prop="id" label="ID" width="72" />
           <el-table-column prop="name" label="名称" />
-          <el-table-column label="操作" width="200">
+          <el-table-column label="操作" width="280">
             <template #default="{ row }">
+              <el-button link type="primary" @click="loadTplRules(row)">载入规则</el-button>
               <el-button link type="primary" @click="genFromTpl(row)">生成试卷</el-button>
               <el-button link type="danger" @click="delTpl(row)">删除</el-button>
             </template>
@@ -129,7 +130,6 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import * as courseApi from '@/api/modules/course';
 import * as paperApi from '@/api/modules/paper';
-import http from '@/api/http';
 import { hasPerm } from '@/composables/usePermission';
 
 const courses = ref<courseApi.Course[]>([]);
@@ -180,7 +180,7 @@ async function refreshPapers() {
   }
   loadingPapers.value = true;
   try {
-    const data = await paperApi.fetchPaperPage(courseId.value, 1, 50);
+    const { data } = await paperApi.fetchPaperPage(courseId.value, 1, 50);
     papers.value = data?.records ?? [];
   } finally {
     loadingPapers.value = false;
@@ -192,11 +192,13 @@ async function refreshTemplates() {
     templates.value = [];
     return;
   }
-  templates.value = (await paperApi.fetchPaperTemplates(courseId.value)) ?? [];
+  const { data } = await paperApi.fetchPaperTemplates(courseId.value);
+  templates.value = data ?? [];
 }
 
 async function showDetail(row: paperApi.Paper) {
-  detail.value = await paperApi.fetchPaperDetail(row.id);
+  const { data } = await paperApi.fetchPaperDetail(row.id);
+  detail.value = data ?? null;
   detailVisible.value = true;
 }
 
@@ -324,9 +326,46 @@ async function confirmGenFromTpl() {
   }
 }
 
+async function loadTplRules(row: paperApi.PaperTemplate) {
+  if (!courseId.value) return;
+  busy.value = true;
+  try {
+    const full = await paperApi.fetchPaperTemplateById(row.id);
+    let rules: Record<string, unknown> = {};
+    const raw = full.rulesJson;
+    if (typeof raw === 'string' && raw.trim()) {
+      try {
+        rules = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        ElMessage.warning('模板规则 JSON 无法解析');
+        return;
+      }
+    } else if (raw && typeof raw === 'object') {
+      rules = raw as Record<string, unknown>;
+    }
+    const cbt = rules.countByType as Record<string, number> | undefined;
+    if (cbt && typeof cbt === 'object') {
+      autoForm.nSingle = Number(cbt.SINGLE) || 0;
+      autoForm.nMulti = Number(cbt.MULTIPLE) || 0;
+      autoForm.nTf = Number(cbt.TRUE_FALSE) || 0;
+      autoForm.nFill = Number(cbt.FILL) || 0;
+      autoForm.nShort = Number(cbt.SHORT) || 0;
+    }
+    if (typeof rules.randomPool === 'boolean') {
+      autoForm.randomPool = rules.randomPool;
+    }
+    ElMessage.success('已载入到「智能组卷」参数');
+    tab.value = 'auto';
+  } catch {
+    /* http 拦截器 */
+  } finally {
+    busy.value = false;
+  }
+}
+
 async function delTpl(row: paperApi.PaperTemplate) {
   await ElMessageBox.confirm('删除该模板？', '确认', { type: 'warning' });
-  await http.delete(`/api/paper-template/${row.id}`);
+  await paperApi.deletePaperTemplate(row.id);
   ElMessage.success('已删除');
   await refreshTemplates();
 }

@@ -81,7 +81,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { fetchUserPage, createUser, updateUser, type UserRow } from '@/api/modules/user';
+import { fetchUserPage, fetchUserById, createUser, updateUser, type UserRow } from '@/api/modules/user';
 
 const query = reactive({
   keyword: '',
@@ -137,15 +137,20 @@ function openCreate() {
   visible.value = true;
 }
 
-function openEdit(row: UserRow) {
+async function openEdit(row: UserRow) {
   editingId.value = row.id;
   title.value = '编辑用户';
-  form.username = row.username;
-  form.password = '';
-  form.realName = row.realName || '';
-  form.role = row.role;
-  form.status = row.status;
-  visible.value = true;
+  try {
+    const u = await fetchUserById(row.id);
+    form.username = u.username;
+    form.password = '';
+    form.realName = u.realName || '';
+    form.role = u.role;
+    form.status = u.status;
+    visible.value = true;
+  } catch {
+    editingId.value = null;
+  }
 }
 
 async function save() {

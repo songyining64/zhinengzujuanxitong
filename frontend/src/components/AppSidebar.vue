@@ -48,13 +48,19 @@ import { useRoute, useRouter } from 'vue-router';
 import {
   CirclePlus,
   Collection,
+  DataAnalysis,
   DataLine,
   Document,
+  EditPen,
   FolderOpened,
   MagicStick,
+  Management,
   Menu,
   Notebook,
-  Reading
+  Reading,
+  Share,
+  Tickets,
+  Upload
 } from '@element-plus/icons-vue';
 import { isRole } from '@/composables/usePermission';
 import type { MenuTreeVO } from '@/types/menu';
@@ -123,6 +129,8 @@ const primaryItems = computed<PrimaryNav[]>(() => {
   }
   return [
     { key: 'dash', label: '仪表盘', path: '/', icon: DataLine },
+    { key: 'course', label: '课程', path: '/course/manage', icon: Management },
+    { key: 'kp', label: '知识点', path: '/knowledge/manage', icon: Share },
     {
       key: 'qm',
       label: '题目管理',
@@ -139,7 +147,11 @@ const primaryItems = computed<PrimaryNav[]>(() => {
     },
     { key: 'auto', label: '智能组卷', path: '/paper/manage', icon: MagicStick },
     { key: 'manual', label: '人工组卷', path: '/paper', icon: Document },
-    { key: 'papers', label: '试卷管理', path: '/paper/browse', icon: FolderOpened }
+    { key: 'papers', label: '试卷浏览', path: '/paper/browse', icon: FolderOpened },
+    { key: 'exam', label: '考试', path: '/exam/manage', icon: Tickets },
+    { key: 'analytics', label: '成绩分析', path: '/exam/analytics', icon: DataAnalysis },
+    { key: 'grade', label: '主观题阅卷', path: '/exam/grading', icon: EditPen },
+    { key: 'files', label: '文件工具', path: '/tools/file', icon: Upload }
   ];
 });
 
@@ -176,6 +188,9 @@ function queryActionVal(): string | undefined {
   return q;
 }
 
+/** 仅精确匹配路径，避免 /paper 在访问 /paper/manage 时也被高亮 */
+const PRIMARY_EXACT_MATCH_PATHS = new Set(['/paper']);
+
 function isPrimaryActive(item: PrimaryNav): boolean {
   const p = item.path.replace(/\/$/, '') || '/';
   const rp = route.path.replace(/\/$/, '') || '/';
@@ -187,6 +202,9 @@ function isPrimaryActive(item: PrimaryNav): boolean {
     return rp === p && qa !== item.excludeQuery;
   }
   if (p === '/') return rp === '/';
+  if (PRIMARY_EXACT_MATCH_PATHS.has(p)) {
+    return rp === p;
+  }
   return rp === p || rp.startsWith(p + '/');
 }
 
@@ -308,3 +326,4 @@ function goMenu(m: MenuTreeVO) {
   color: #94a3b8;
   text-transform: uppercase;
 }
+</style>
