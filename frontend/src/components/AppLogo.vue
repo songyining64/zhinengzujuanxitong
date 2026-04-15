@@ -12,7 +12,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: #409eff;
   display: flex;
   align-items: center;
   justify-content: center;

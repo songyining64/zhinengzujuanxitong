@@ -1,27 +1,20 @@
-import http from '@/api/http';
+import http from '../http';
+import type { ExamKnowledgeStatDTO, ExamOverviewDTO, ExamQuestionStatDTO, StudentRankDTO } from '@/types/models';
 
-export interface ExamOverview {
-  examId: number;
-  submittedCount: number;
-  totalRecords: number;
-  avgScore?: number;
-  maxScore?: number;
-  minScore?: number;
-  passScore?: number;
-  scorePublished?: boolean;
-  passCount?: number;
+export function fetchExamOverview(examId: number) {
+  return http.get<ExamOverviewDTO>('/api/exam/analytics/overview', { params: { examId } });
 }
 
-export async function fetchOverview(examId: number) {
-  const { data } = await http.get<ExamOverview>('/api/exam/analytics/overview', {
-    params: { examId }
-  });
-  return data;
-}
-
-export async function fetchRankPage(examId: number, page = 1, size = 20) {
-  const { data } = await http.get('/api/exam/analytics/rank', {
+export function fetchExamRank(examId: number, page = 1, size = 20) {
+  return http.get<{ records: StudentRankDTO[]; total: number }>('/api/exam/analytics/rank', {
     params: { examId, page, size }
   });
-  return data;
+}
+
+export function fetchQuestionStats(examId: number) {
+  return http.get<ExamQuestionStatDTO[]>('/api/exam/analytics/question-stats', { params: { examId } });
+}
+
+export function fetchKnowledgePointStats(examId: number) {
+  return http.get<ExamKnowledgeStatDTO[]>('/api/exam/analytics/knowledge-point-stats', { params: { examId } });
 }
