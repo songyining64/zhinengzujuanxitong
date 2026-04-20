@@ -7,6 +7,12 @@ jwt:
 
 exam:
   auto-submit-interval-ms: 60000
+  paper-compose:
+    compose-timeout-ms: 10000
+    greedy-max-repair-swaps: 800
+    genetic-crossover-rate: 0.7
+    genetic-mutation-rate: 0.05
+    default-algorithm: GREEDY
 
 app:
   upload:

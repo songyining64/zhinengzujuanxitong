@@ -45,4 +45,38 @@ public class PaperAutoGenRequest {
      * 若设置，则在每个题型内按权重分配选题数量（如 3:5:2）。
      */
     private Map<String, Integer> difficultyWeights;
+
+    /**
+     * 按题型配置分值（如 SINGLE -> 2、SHORT -> 10）；未配置的题型使用 {@link #scorePerQuestion} 或默认 10。
+     */
+    private Map<String, BigDecimal> scoreByType;
+
+    /** 期望试卷总分；若与按题型分值推算不一致且未允许放宽，将失败并提示 */
+    private BigDecimal targetTotalScore;
+
+    /**
+     * 知识点覆盖率下限（0–1），如 0.95。仅在与 {@link #randomPool} 为 false 且指定了知识点时生效。
+     */
+    private BigDecimal minKnowledgeCoverage;
+
+    /**
+     * 未达覆盖率等约束时是否仍生成试卷并标记 {@link PaperAutoGenResult#isPartialConstraint()}。
+     */
+    private Boolean allowPartialConstraints = Boolean.FALSE;
+
+    /** 显式排除的题目 ID（已做卷、人工指定等） */
+    private List<Long> excludeQuestionIds;
+
+    /** 禁选题：永不入卷（与 exclude 合并过滤） */
+    private List<Long> forbiddenQuestionIds;
+
+    /**
+     * 排除某学生错题本中的试题（教师巩固卷 / 个性化组卷）。
+     */
+    private Long excludeWrongBookForStudentId;
+
+    /**
+     * GREEDY / GENETIC（遗传为预留，当前实现为贪心 + 修复）。
+     */
+    private String algorithmMode;
 }

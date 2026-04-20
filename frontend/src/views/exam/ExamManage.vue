@@ -136,8 +136,8 @@ async function loadPapers() {
     papers.value = [];
     return;
   }
-  const { data } = await fetchPaperPage({ courseId: courseId.value, page: 1, size: 200 });
-  const rec = (data as { records?: { id: number; title: string }[] })?.records ?? [];
+  const pageData = await fetchPaperPage({ courseId: courseId.value, page: 1, size: 200 });
+  const rec = pageData?.records ?? [];
   papers.value = rec.map((p) => ({ id: p.id, title: p.title }));
 }
 

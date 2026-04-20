@@ -1,31 +1,29 @@
 import http from '@/api/http';
 import type { PageResult } from './course';
 
+export interface Question {
+  id: number;
+  courseId?: number;
+  knowledgePointId?: number;
+  type?: string;
+  stem?: string;
+  difficulty?: number;
+  reviewStatus?: string;
+}
+
 export function getQuestion(id: number) {
-  return http.get(`/api/question/${id}`)
-}
-
-export function createQuestion(data: Record<string, unknown>) {
-  return http.post('/api/question', data)
-}
-
-export function updateQuestion(id: number, data: Record<string, unknown>) {
-  return http.put(`/api/question/${id}`, data)
-}
-
-export function deleteQuestion(id: number) {
-  return http.delete(`/api/question/${id}`)
+  return http.get(`/api/question/${id}`);
 }
 
 /** 分页查询试题（支持 reviewStatus: DRAFT/PENDING/PUBLISHED/REJECTED） */
-export function fetchQuestionPage(params: {
-  courseId: number
-  knowledgePointId?: number
-  type?: string
-  keyword?: string
-  reviewStatus?: string
-  page?: number
-  size?: number
+export async function fetchQuestionPage(params: {
+  courseId: number;
+  knowledgePointId?: number;
+  type?: string;
+  keyword?: string;
+  reviewStatus?: string;
+  page?: number;
+  size?: number;
 }) {
   const { data } = await http.get<PageResult<Question>>('/api/question', { params });
   return data;

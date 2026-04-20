@@ -1,32 +1,29 @@
 import http from '@/api/http';
 import type { PageResult } from './course';
 
-export function fetchPaperPage(params: { courseId: number; page?: number; size?: number }) {
-  return http.get('/api/paper', { params })
+export interface Paper {
+  id: number;
+  courseId: number;
+  title: string;
+  mode?: string;
+  totalScore?: number;
+  randomSeed?: number;
+  createTime?: string;
 }
 
-export function getPaperDetail(id: number) {
-  return http.get(`/api/paper/${id}`)
+export interface PaperAutoGenResult {
+  paper: Paper;
+  knowledgeCoverage: number;
+  partialConstraint: boolean;
+  warnings: string[];
+  suggestions: string[];
+  durationMs: number;
+  algorithmMode: string;
 }
 
-export function createPaperManual(data: {
-  courseId: number
-  title: string
-  items: { questionId: number; score: number }[]
-}) {
-  return http.post('/api/paper/manual', data)
-}
-
-export function generatePaperAuto(data: Record<string, unknown>) {
-  return http.post('/api/paper/auto-generate', data)
-}
-
-export function deletePaper(id: number) {
-  return http.delete(`/api/paper/${id}`)
-}
-
-export function fetchPaperTemplates(courseId: number) {
-  return http.get('/api/paper-template', { params: { courseId } })
+export async function generatePaperAuto(data: Record<string, unknown>) {
+  const { data: body } = await http.post<PaperAutoGenResult>('/api/paper/auto-generate', data);
+  return body;
 }
 
 export interface PaperQuestionLine {
@@ -109,13 +106,33 @@ export async function createManualPaper(body: {
   return data;
 }
 
+/** @deprecated 与 createManualPaper 相同，兼容旧页面 import 名 */
+export const createPaperManual = createManualPaper;
+
 export async function autoGeneratePaper(body: Record<string, unknown>) {
-  const { data } = await http.post<Paper>('/api/paper/auto-generate', body);
+  const { data } = await http.post<PaperAutoGenResult>('/api/paper/auto-generate', body);
+  return data;
+}
+
+/** 异步组卷：返回 taskId，配合 pollComposeTask */
+export async function autoGeneratePaperAsync(body: Record<string, unknown>) {
+  const { data } = await http.post<string>('/api/paper/auto-generate-async', body);
+  return data;
+}
+
+export interface PaperComposeTaskEntry {
+  status: string;
+  result?: PaperAutoGenResult;
+  errorMessage?: string;
+}
+
+export async function pollComposeTask(taskId: string) {
+  const { data } = await http.get<PaperComposeTaskEntry>(`/api/paper/compose-tasks/${taskId}`);
   return data;
 }
 
 export async function generateFromTemplate(templateId: number, body: { title: string; randomSeed?: number }) {
-  const { data } = await http.post<Paper>(`/api/paper/from-template/${templateId}`, body);
+  const { data } = await http.post<PaperAutoGenResult>(`/api/paper/from-template/${templateId}`, body);
   return data;
 }
 

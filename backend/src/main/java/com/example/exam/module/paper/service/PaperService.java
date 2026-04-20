@@ -2,6 +2,7 @@ package com.example.exam.module.paper.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.exam.module.paper.dto.PaperAutoGenRequest;
+import com.example.exam.module.paper.dto.PaperAutoGenResult;
 import com.example.exam.module.paper.dto.PaperDetailVO;
 import com.example.exam.module.paper.dto.PaperFromTemplateRequest;
 import com.example.exam.module.paper.dto.PaperManualRequest;
@@ -12,9 +13,9 @@ public interface PaperService {
 
     Paper createManual(PaperManualRequest req);
 
-    Paper generateAuto(PaperAutoGenRequest req);
+    PaperAutoGenResult generateAuto(PaperAutoGenRequest req);
 
-    Paper generateFromTemplate(Long templateId, PaperFromTemplateRequest req);
+    PaperAutoGenResult generateFromTemplate(Long templateId, PaperFromTemplateRequest req);
 
     Page<Paper> page(Long courseId, long page, long size);
 

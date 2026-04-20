@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { fetchCoursePage, type CourseRow } from '@/api/course';
-import { fetchPaperPage, getPaperDetail } from '@/api/modules/paper';
+import { fetchPaperPage, fetchPaperDetail } from '@/api/modules/paper';
 import { getLastCourseId, setLastCourseId } from '@/composables/useLastCourseId';
 
 const courses = ref<CourseRow[]>([]);
@@ -79,9 +79,9 @@ async function load() {
   if (!courseId.value) return;
   loading.value = true;
   try {
-    const { data } = await fetchPaperPage({ courseId: courseId.value, page: page.value, size: size.value });
-    rows.value = (data as { records?: Record<string, unknown>[] })?.records ?? [];
-    total.value = (data as { total?: number })?.total ?? 0;
+    const data = await fetchPaperPage({ courseId: courseId.value, page: page.value, size: size.value });
+    rows.value = data?.records ?? [];
+    total.value = data?.total ?? 0;
   } finally {
     loading.value = false;
   }
@@ -90,8 +90,7 @@ async function load() {
 async function openDetail(id: number) {
   detailVisible.value = true;
   detail.value = null;
-  const { data } = await getPaperDetail(id);
-  detail.value = data as typeof detail.value;
+  detail.value = (await fetchPaperDetail(id)) as typeof detail.value;
 }
 
 onMounted(async () => {
