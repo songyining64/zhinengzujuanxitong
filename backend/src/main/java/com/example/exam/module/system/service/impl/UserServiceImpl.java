@@ -2,7 +2,12 @@ package com.example.exam.module.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.exam.common.api.ErrorCode;
 import com.example.exam.common.enums.RoleEnum;
+import com.example.exam.common.exception.BizException;
+import com.example.exam.module.system.dto.RegisterRequest;
+import com.example.exam.module.system.dto.UserCreateRequest;
+import com.example.exam.module.system.dto.UserUpdateRequest;
 import com.example.exam.module.system.entity.User;
 import com.example.exam.module.system.mapper.UserMapper;
 import com.example.exam.module.system.service.UserService;

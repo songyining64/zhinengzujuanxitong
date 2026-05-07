@@ -54,19 +54,19 @@ public class MenuAndPermissionSeed {
             return;
         }
         List<SysMenu> menus = new ArrayList<>();
-        menus.add(menu("用户管理", "system/user", "system:user:manage"));
-        menus.add(menu("课程浏览", "course/browse", "course:read"));
-        menus.add(menu("课程管理", "course/manage", "course:manage"));
-        menus.add(menu("知识点管理", "knowledge/manage", "knowledge:manage"));
-        menus.add(menu("知识点浏览", "knowledge/browse", "knowledge:read"));
-        menus.add(menu("题库管理", "question/manage", "question:manage"));
-        menus.add(menu("题库浏览", "question/browse", "question:read"));
-        menus.add(menu("试卷管理", "paper/manage", "paper:manage"));
-        menus.add(menu("试卷浏览", "paper/browse", "paper:read"));
-        menus.add(menu("考试管理", "exam/manage", "exam:manage"));
-        menus.add(menu("学生考试", "exam/take", "exam:student"));
-        menus.add(menu("成绩统计", "exam/stats", "exam:analytics"));
-        menus.add(menu("错题本", "wrongbook", "wrongbook:read"));
+        menus.add(menu("用户管理", "system/user", "system:user:manage", 10));
+        menus.add(menu("课程浏览", "course/browse", "course:read", 20));
+        menus.add(menu("课程管理", "course/manage", "course:manage", 30));
+        menus.add(menu("知识点管理", "knowledge/manage", "knowledge:manage", 40));
+        menus.add(menu("知识点浏览", "knowledge/browse", "knowledge:read", 50));
+        menus.add(menu("题库管理", "question/manage", "question:manage", 60));
+        menus.add(menu("题库浏览", "question/browse", "question:read", 70));
+        menus.add(menu("试卷管理", "paper/manage", "paper:manage", 80));
+        menus.add(menu("试卷浏览", "paper/browse", "paper:read", 90));
+        menus.add(menu("考试管理", "exam/manage", "exam:manage", 100));
+        menus.add(menu("学生考试", "exam/take", "exam:student", 110));
+        menus.add(menu("成绩统计", "exam/stats", "exam:analytics", 120));
+        menus.add(menu("错题本", "wrongbook", "wrongbook:read", 130));
 
         for (SysMenu m : menus) {
             sysMenuMapper.insert(m);
