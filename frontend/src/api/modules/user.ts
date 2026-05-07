@@ -19,6 +19,11 @@ export async function fetchUserPage(params: {
   return data;
 }
 
+export async function fetchUserById(id: number) {
+  const { data } = await http.get<UserRow>(`/api/system/user/${id}`);
+  return data;
+}
+
 export async function createUser(body: {
   username: string;
   password: string;
