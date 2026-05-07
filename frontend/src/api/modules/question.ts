@@ -12,11 +12,11 @@ export interface Question {
 }
 
 export function getQuestion(id: number) {
-  return http.get(`/api/question/${id}`);
+  return http.get<Question>(`/api/question/${id}`);
 }
 
 /** 分页查询试题（支持 reviewStatus: DRAFT/PENDING/PUBLISHED/REJECTED） */
-export async function fetchQuestionPage(params: {
+export function fetchQuestionPage(params: {
   courseId: number;
   knowledgePointId?: number;
   type?: string;
@@ -25,8 +25,7 @@ export async function fetchQuestionPage(params: {
   page?: number;
   size?: number;
 }) {
-  const { data } = await http.get<PageResult<Question>>('/api/question', { params });
-  return data;
+  return http.get<PageResult<Question>>('/api/question', { params });
 }
 
 export async function createQuestion(body: Record<string, unknown>) {
@@ -36,6 +35,12 @@ export async function createQuestion(body: Record<string, unknown>) {
 
 export async function updateQuestion(id: number, body: Record<string, unknown>) {
   const { data } = await http.put<Question>(`/api/question/${id}`, body);
+  return data;
+}
+
+/** 与后端 POST /api/question/save 一致：无 id 为新增，有 id 为更新 */
+export async function saveQuestion(body: Record<string, unknown>) {
+  const { data } = await http.post<Question>('/api/question/save', body);
   return data;
 }
 
@@ -96,5 +101,46 @@ export async function rejectQuestion(id: number) {
 
 export async function listQuestionVersions(id: number) {
   const { data } = await http.get<QuestionVersionVO[]>(`/api/question/${id}/versions`);
+  return data;
+}
+
+export async function fetchQuestionVersion(id: number, versionNo: number) {
+  const { data } = await http.get<QuestionVersionVO>(`/api/question/${id}/versions/${versionNo}`);
+  return data;
+}
+
+export interface QuestionDedupHit {
+  questionId?: number;
+  similarity?: number;
+  type?: string;
+  knowledgePointId?: number;
+  stemPreview?: string;
+}
+
+export interface QuestionDedupResult {
+  hits?: QuestionDedupHit[];
+  comparedTotal?: number;
+  truncated?: boolean;
+}
+
+export async function dedupCheckQuestion(body: {
+  courseId: number;
+  stem: string;
+  optionsJson?: string;
+  excludeQuestionId?: number;
+  knowledgePointId?: number;
+  threshold?: number;
+}) {
+  const { data } = await http.post<QuestionDedupResult>('/api/question/dedup-check', body);
+  return data;
+}
+
+export async function batchUpdateQuestions(body: {
+  courseId: number;
+  questionIds: number[];
+  knowledgePointId?: number;
+  difficulty?: number;
+}) {
+  const { data } = await http.post<number>('/api/question/batch', body);
   return data;
 }

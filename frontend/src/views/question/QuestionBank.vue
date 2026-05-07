@@ -169,7 +169,7 @@ async function load() {
   }
   loading.value = true;
   try {
-    const data = await qApi.fetchQuestionPage({
+    const { data } = await qApi.fetchQuestionPage({
       courseId: courseId.value,
       page: page.value,
       size: size.value,

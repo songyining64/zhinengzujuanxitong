@@ -188,9 +188,9 @@ async function load() {
   if (!courseId.value) return;
   loading.value = true;
   try {
-    const data = await fetchPaperPage({ courseId: courseId.value, page: page.value, size: size.value });
-    rows.value = data?.records ?? [];
-    total.value = data?.total ?? 0;
+    const { data } = await fetchPaperPage({ courseId: courseId.value, page: page.value, size: size.value });
+    rows.value = (data as { records?: Record<string, unknown>[] })?.records ?? [];
+    total.value = (data as { total?: number })?.total ?? 0;
   } finally {
     loading.value = false;
   }
@@ -198,12 +198,14 @@ async function load() {
 
 async function loadTplAndLogs() {
   if (!courseId.value) return;
-  const [tList, lPage] = await Promise.all([
+  const [tRes, lRes] = await Promise.all([
     fetchPaperTemplates(courseId.value),
     fetchPaperGenerationLogs({ courseId: courseId.value, page: 1, size: 20 })
   ]);
-  templates.value = Array.isArray(tList) ? tList : [];
-  logs.value = lPage?.records ?? [];
+  const td = tRes.data as { id: number; name: string }[] | undefined;
+  templates.value = Array.isArray(td) ? td : [];
+  const ld = lRes.data as { records?: Record<string, unknown>[] } | undefined;
+  logs.value = ld?.records ?? [];
 }
 
 function openManual() {
@@ -272,6 +274,7 @@ async function saveTemplate() {
     courseId: courseId.value,
     name: tplName.value,
     rules: {
+      courseId: courseId.value,
       countByType,
       scorePerQuestion: autoScore.value,
       randomPool: true,

@@ -49,6 +49,18 @@
             <el-button type="primary" :disabled="!textContent.trim()" @click="downloadText">下载 .txt</el-button>
           </div>
         </el-tab-pane>
+
+        <el-tab-pane label="按文件 ID 下载">
+          <p class="hint">
+            对应后端 <code>GET /api/file/download/{id}</code>（需登录，走带 Token 的请求）。
+          </p>
+          <div class="text-actions">
+            <el-input-number v-model="downloadById" :min="1" :step="1" placeholder="文件 ID" />
+            <el-button type="primary" :loading="downloadingById" :disabled="!downloadById" @click="runDownloadById">
+              下载
+            </el-button>
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -96,6 +108,29 @@ function copyUrl() {
 
 const textContent = ref('');
 const textFilename = ref('笔记');
+
+const downloadById = ref<number | undefined>();
+const downloadingById = ref(false);
+
+async function runDownloadById() {
+  const id = downloadById.value;
+  if (!id) return;
+  downloadingById.value = true;
+  try {
+    const blob = await fileApi.downloadFileBlob(id);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `file-${id}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success('已开始下载');
+  } catch {
+    /* 拦截器已提示 */
+  } finally {
+    downloadingById.value = false;
+  }
+}
 
 function downloadText() {
   const name = (textFilename.value || 'export').replace(/[^\w\u4e00-\u9fa5\-_.]/g, '_') || 'export';
